@@ -1,0 +1,2746 @@
+# CRIPOO — MASTER PRODUCT, DESIGN & ENGINEERING SPECIFICATION
+## Complete Developer Prompt for the CIMFEST 2026 Build
+
+**Product:** Cripoo  
+**Category:** Creator Economy Infrastructure / Creator Project Exchange / Brand Partnership Platform  
+**Market:** Cameroon first, with an African expansion strategy  
+**Hackathon:** CIMFEST 2026  
+**Primary objective:** Build a complete, functional, responsive prototype of Cripoo, including its web platform, mobile experience, backend APIs, AI agents, data infrastructure, dashboards, and demonstration workflows.
+
+---
+
+# 1. YOUR ROLE AS THE DEVELOPMENT AI
+
+You are the lead product engineer, software architect, UI/UX designer, backend engineer, frontend engineer, AI engineer, and QA engineer responsible for building Cripoo.
+
+You are not being asked to create a simple landing page, static dashboard, or visual mockup.
+
+You are being asked to build a complete working product prototype with:
+
+1. A public-facing website.
+2. An authenticated web application.
+3. A mobile-first experience that works on phones.
+4. A creator discovery and profile system.
+5. A creator-project exchange.
+6. A project fundraising and campaign management system.
+7. An AI-powered creator and project analysis engine.
+8. A local entertainment and cultural intelligence engine.
+9. A brand partnership marketplace.
+10. Creator, supporter, brand, and administrator dashboards.
+11. Backend APIs and database integration.
+12. A complete simulated transaction and project lifecycle.
+13. Documentation and a reliable demonstration environment.
+
+**Do not stop after generating the UI.** Every major button, form, navigation item, filter, modal, dashboard card, and workflow must work or clearly indicate that it is a prototype feature awaiting integration.
+
+Before changing code:
+
+- Inspect the existing repositories.
+- Inspect the installed packages and framework versions.
+- Inspect the existing branches and project structure.
+- Inspect existing Firebase configuration and environment setup.
+- Identify code already implemented by the other developers.
+- Reuse existing code where appropriate.
+- Do not initialize new repositories.
+- Do not overwrite existing work.
+- Do not replace the existing architecture without a clear technical reason.
+- Do not invent API credentials, endpoint URLs, or successful integration results.
+
+When something is unavailable, create a properly isolated adapter and an environment-variable placeholder.
+
+---
+
+# 2. THE PRODUCT IDEA
+
+## 2.1 What is Cripoo?
+
+Cripoo is an AI-powered creator-project exchange and brand partnership platform.
+
+It gives African creators a structured way to present projects, demonstrate audience traction, attract financial supporters, and connect with brands.
+
+Instead of asking fans to simply donate money to a creator, Cripoo is designed around individual creative projects.
+
+Examples include:
+
+- A musician raising production funds for an album.
+- A filmmaker financing an independent movie.
+- A comedian funding a new TikTok series.
+- A YouTube creator producing a documentary.
+- A podcaster launching a new show.
+- A creator developing a music video.
+- A creator organizing a brand-backed campaign.
+
+Each project has its own profile, funding target, milestones, audience metrics, creator information, supporting documentation, and performance dashboard.
+
+The platform uses AI and publicly available or authorized data sources to help understand creator traction, project feasibility, cultural relevance, and potential risks.
+
+The broader vision is to create infrastructure through which African creative projects can access capital, visibility, and commercial opportunities.
+
+## 2.2 The problem
+
+African creators often struggle to finance projects.
+
+A creator may have an audience, a strong idea, and a history of engagement but still lack access to structured financing.
+
+At the same time:
+
+- Fans want to support the creators they believe in.
+- Brands want to discover creators and sponsor relevant projects.
+- Agencies want to manage creator opportunities.
+- Creators need better visibility into their performance.
+- Supporters need transparent information about projects.
+- The creative economy lacks accessible infrastructure connecting these groups.
+
+Cripoo brings these participants together.
+
+## 2.3 The solution
+
+Cripoo provides five major capabilities:
+
+**1. Creator discovery**
+
+Discover African creators by category, country, city, platform, audience size, and popularity.
+
+**2. Project exchange**
+
+Creators can submit creative projects, explain their budgets, set funding targets, and publish structured campaigns after verification.
+
+**3. AI intelligence**
+
+AI analyzes permitted creator data, audience growth, engagement, project information, and relevant cultural signals.
+
+**4. Brand partnerships**
+
+Brands can discover creators, browse projects, and submit partnership opportunities.
+
+**5. Project performance monitoring**
+
+Supporters and creators can monitor milestones, public traction, verified performance data, and documented revenue information.
+
+## 2.4 Important terminology
+
+Use these terms consistently throughout the application:
+
+- **Creator:** An individual producing content or creative work.
+- **Entity:** A creator, agency, or brand represented on Cripoo.
+- **Project:** A creative initiative submitted by a creator.
+- **Race:** A project funding campaign listed on the exchange.
+- **Supporter:** A user following or supporting a project.
+- **Participation record:** A record representing a simulated allocation in the prototype. Do not present it as legally enforceable ownership.
+- **Catalyst:** A relevant event or news item that may influence a project's public attention.
+- **Cultural Pulse:** Cripoo's local entertainment and cultural intelligence system.
+- **Underwriting:** An evidence-based assessment of a project before it is listed.
+- **Creator claim:** The process through which a creator verifies and takes control of an existing profile.
+- **Brand campaign:** A commercial partnership opportunity involving a creator or project.
+
+---
+
+# 3. PRODUCT PLATFORMS
+
+Build two connected experiences.
+
+## 3.1 Cripoo Web
+
+The web application is the main platform for:
+
+- Discovering projects.
+- Browsing creators.
+- Viewing project analysis.
+- Creating and managing projects.
+- Managing brand campaigns.
+- Viewing detailed charts.
+- Reviewing creator analytics.
+- Managing administrative operations.
+
+It must work on desktop, laptop, tablet, and mobile browser.
+
+## 3.2 Cripoo Mobile
+
+Build a mobile-first experience for users who primarily access the platform through smartphones.
+
+The mobile experience should include:
+
+- Mobile home feed.
+- Creator discovery.
+- Project discovery.
+- Project detail pages.
+- User registration and login.
+- Project following and watchlists.
+- Notifications.
+- Creator dashboard.
+- Supporter dashboard.
+- Project submission.
+- Profile management.
+- Mobile-friendly charts.
+- Campaign and partnership discovery.
+
+If a separate native mobile repository already exists, inspect it and use its existing framework.
+
+If there is no native mobile repository, implement the mobile experience as a responsive Progressive Web App (PWA). Do not pretend a responsive website is a native iOS or Android application.
+
+The web and mobile experiences must use the same backend APIs and data models.
+
+---
+
+# 4. USER TYPES AND PERMISSIONS
+
+Implement role-based access.
+
+## 4.1 Guest
+
+Can:
+
+- View the landing page.
+- Browse public creators.
+- Browse public projects.
+- View public project information.
+- View the Cultural Pulse feed.
+- Search the platform.
+- Register or log in.
+
+Cannot:
+
+- Submit projects.
+- Claim creator profiles.
+- Access private dashboards.
+- Submit private brand offers.
+- Access private documents.
+
+## 4.2 Supporter
+
+Can:
+
+- Follow creators.
+- Follow projects.
+- Save projects to a watchlist.
+- View project progress.
+- View project analysis summaries.
+- Receive notifications.
+- View their simulated participation records.
+- View public campaign milestones.
+- Submit project memo requests if enabled.
+
+## 4.3 Creator
+
+Can:
+
+- Claim an existing creator profile.
+- Edit their profile after verification.
+- Connect authorized social accounts.
+- Submit new projects.
+- Upload project documents.
+- Submit a funding request.
+- View AI project analysis.
+- Track campaign performance.
+- Publish project updates.
+- Manage brand opportunities.
+- View audience performance.
+- View project milestones.
+
+## 4.4 Agency
+
+Can:
+
+- Manage an agency profile.
+- Request affiliation with creators.
+- Manage authorized creator profiles.
+- Submit projects on behalf of creators where authorization is established.
+- View campaign performance.
+- Manage brand partnerships.
+- Upload supporting documentation.
+
+Do not assume that an agency automatically owns a creator's work.
+
+## 4.5 Brand
+
+Can:
+
+- Create a brand profile.
+- Discover creators.
+- Discover projects.
+- Browse creator categories.
+- Submit partnership offers.
+- Create campaign briefs.
+- Track submitted proposals.
+- Manage active prototype campaigns.
+
+## 4.6 Administrator
+
+Can:
+
+- Review creators.
+- Review creator claims.
+- Review agencies.
+- Review submitted projects.
+- Review AI assessments.
+- Approve, reject, or request additional information.
+- Manage reported content.
+- Review data source health.
+- Manage categories.
+- View audit logs.
+- Manage demo data.
+- View platform analytics.
+
+Sensitive administrative functions must be protected by server-side authorization.
+
+---
+
+# 5. WEB APPLICATION — COMPLETE PAGE STRUCTURE
+
+Build the following pages.
+
+## 5.1 Public landing page
+
+Route: `/`
+
+Purpose: Explain Cripoo and convert visitors into users.
+
+Sections:
+
+1. Navigation bar.
+2. Hero section.
+3. Clear explanation of Cripoo.
+4. Featured creator projects.
+5. Trending creators.
+6. Cultural Pulse preview.
+7. How the platform works.
+8. Creator benefits.
+9. Supporter benefits.
+10. Brand partnership section.
+11. Trust and transparency section.
+12. Frequently asked questions.
+13. Footer.
+
+Hero headline direction:
+
+**"The next generation of African creators deserves more than exposure."**
+
+Supporting message:
+
+"Discover creative projects, understand the people behind them, and connect creators with the support and partnerships they need to grow."
+
+Primary buttons:
+
+- Explore Projects
+- Join Cripoo
+
+Secondary buttons:
+
+- I'm a Creator
+- I'm a Brand
+
+Do not make unsupported claims about the number of users, transactions, creators, or projects.
+
+## 5.2 Authentication
+
+Routes:
+
+- `/login`
+- `/register`
+- `/forgot-password`
+- `/verify-email`
+
+Registration should support:
+
+- Full name.
+- Email.
+- Password.
+- Account type.
+- Country.
+- Optional phone number.
+
+Use Firebase Authentication if it is already configured.
+
+Provide:
+
+- Email and password login.
+- Logout.
+- Session persistence.
+- Protected routes.
+- Role-based navigation.
+
+Do not store plaintext passwords.
+
+## 5.3 Main application layout
+
+Route prefix: `/app`
+
+Create a professional application shell.
+
+Desktop:
+
+- Left sidebar.
+- Main content area.
+- Top navigation.
+- Search.
+- Notifications.
+- User profile menu.
+
+Mobile:
+
+- Compact top navigation.
+- Bottom navigation.
+- Mobile drawer for secondary sections.
+- Responsive cards and charts.
+
+Main navigation:
+
+1. Overview
+2. Explore
+3. Projects
+4. Creators
+5. Cultural Pulse
+6. Brands
+7. Watchlist
+8. Dashboard
+9. Notifications
+10. Settings
+
+Show role-specific items only where appropriate.
+
+## 5.4 Home / Market overview
+
+Route: `/app`
+
+This is the main logged-in experience.
+
+Include:
+
+- Welcome message.
+- Featured projects.
+- Open funding campaigns.
+- Trending creators.
+- Most-watched projects.
+- Recently added projects.
+- Cultural Pulse cards.
+- Project performance overview.
+- Category filters.
+- Search.
+- Featured brand opportunities.
+
+Create a professional exchange-style interface.
+
+A user should immediately understand:
+
+- What projects are available.
+- Which projects are attracting attention.
+- Which creators are growing.
+- Which opportunities are new.
+- What is happening in the creative economy.
+
+## 5.5 Explore projects
+
+Route: `/app/explore`
+
+Features:
+
+- Search projects.
+- Search creators.
+- Filter by category.
+- Filter by country.
+- Filter by city.
+- Filter by platform.
+- Filter by campaign status.
+- Filter by funding progress.
+- Sort by popularity.
+- Sort by recent activity.
+- Sort by audience growth.
+- Sort by project target.
+
+Project categories:
+
+- Music
+- Film
+- Comedy
+- TikTok Series
+- YouTube Shows
+- Podcasts
+- Documentaries
+- Music Videos
+- Other Creative Projects
+
+Each project card should display:
+
+- Project cover.
+- Project name.
+- Creator name.
+- Project category.
+- Short description.
+- Campaign status.
+- Funding target.
+- Demonstration funding progress.
+- Project deadline if configured.
+- Public audience metrics.
+- View Project button.
+
+Never invent live funding progress.
+
+## 5.6 Project detail / Race page
+
+Route: `/app/projects/:projectId`
+
+This is one of the most important pages.
+
+Create a detailed project page with:
+
+### Header
+
+- Project cover image.
+- Project title.
+- Creator name.
+- Category.
+- Project status.
+- Verification status.
+- Follow button.
+
+### Project description
+
+- Project overview.
+- What the creator intends to produce.
+- Why the project matters.
+- Target audience.
+- Distribution strategy.
+
+### Funding overview
+
+- Requested amount.
+- Funding target.
+- Simulated amount raised.
+- Funding progress.
+- Campaign opening date.
+- Campaign closing date.
+- Project milestones.
+
+### Participation demonstration
+
+For the prototype, display simulated participation information only.
+
+Include:
+
+- Illustrative unit price.
+- Illustrative allocation.
+- Example participation history.
+- Example cap table.
+- Clear demo labels.
+
+Never create an actual investment order or claim that the user legally owns part of a project.
+
+### Performance
+
+Display:
+
+- YouTube subscribers.
+- Recent YouTube views.
+- Spotify monthly listeners, where authorized.
+- TikTok audience metrics, where available.
+- Audience growth.
+- Engagement indicators.
+- Geographic performance, only where the source supports it.
+
+### AI analysis
+
+Display:
+
+- Cripoo Score.
+- Analysis date.
+- Confidence level.
+- Positive indicators.
+- Risks.
+- Missing information.
+- Data sources.
+- Human review status.
+
+### Milestones
+
+Display:
+
+- Project preparation.
+- Production.
+- Completion.
+- Release.
+- Performance reporting.
+
+### Updates
+
+Allow authorized creators to publish project updates.
+
+### Related projects
+
+Show other projects from the same category or creator.
+
+## 5.7 Creator discovery
+
+Route: `/app/creators`
+
+Features:
+
+- Creator directory.
+- Search.
+- Category filters.
+- Location filters.
+- Platform filters.
+- Audience size filters.
+- Trending creators.
+- Recently added creators.
+
+Creator cards should include:
+
+- Profile image.
+- Creator name.
+- Location.
+- Main category.
+- Main platform.
+- Audience metrics where available.
+- Claimed or unclaimed status.
+- Cripoo Score, if assessed.
+- View Profile button.
+
+## 5.8 Creator profile
+
+Route: `/app/creators/:creatorId`
+
+Sections:
+
+1. Creator header.
+2. Profile photo and cover.
+3. Creator biography.
+4. Location.
+5. Social platform links.
+6. Audience metrics.
+7. Recent performance.
+8. Published projects.
+9. Current funding campaigns.
+10. Brand partnerships.
+11. Public news and catalysts.
+12. Verification status.
+13. Follow button.
+
+Show whether the profile is:
+
+- Unclaimed.
+- Claimed.
+- Under review.
+- Verified.
+
+Do not label an unverified creator as verified.
+
+## 5.9 Creator profile claim
+
+Route: `/app/claim/:creatorId`
+
+Claim workflow:
+
+1. User signs in.
+2. User selects the creator profile.
+3. User confirms their relationship to the profile.
+4. System generates a unique verification code.
+5. User places the code in an eligible public social profile field.
+6. Backend verifies the code through an authorized method.
+7. User submits additional information if required.
+8. Admin reviews the claim.
+9. Claim is approved or rejected.
+10. Profile management becomes available after approval.
+
+Government identity documents, if ever collected, must use a restricted, secure process and must not be exposed through public APIs.
+
+For the hackathon prototype, create a simulated claim verification flow. Do not collect real identity documents from demo users.
+
+## 5.10 Submit a project
+
+Route: `/app/projects/create`
+
+Build a multi-step form.
+
+### Step 1: Project basics
+
+- Project name.
+- Category.
+- Short description.
+- Full description.
+- Cover image.
+- Project location.
+- Creator or issuing entity.
+
+### Step 2: Project plan
+
+- What will be produced?
+- Target audience.
+- Distribution platform.
+- Production timeline.
+- Delivery milestones.
+
+### Step 3: Budget
+
+- Requested production budget.
+- Budget breakdown.
+- Funding target.
+- Intended use of funds.
+
+### Step 4: Audience and performance
+
+- Connected social accounts.
+- Public profile URLs.
+- Historical metrics.
+- Relevant previous projects.
+
+### Step 5: Rights and authorization
+
+- Creator ownership declaration.
+- Agency involvement.
+- Collaborator involvement.
+- Distribution arrangements.
+- Supporting documents.
+- Confirmation of authority to submit the project.
+
+### Step 6: Review
+
+Show the completed information.
+
+Allow the creator to submit for review.
+
+Project statuses:
+
+- Draft
+- Submitted
+- Under Review
+- Needs Information
+- Approved for Demo Listing
+- Rejected
+- Open
+- Closed
+- Completed
+- Cancelled
+
+## 5.11 Creator dashboard
+
+Route: `/app/creator/dashboard`
+
+Include:
+
+- Profile completion.
+- Profile verification status.
+- Projects.
+- Campaign status.
+- Project performance.
+- Audience growth.
+- Brand inquiries.
+- Recent updates.
+- Notifications.
+- AI recommendations.
+- Required actions.
+
+## 5.12 Supporter dashboard
+
+Route: `/app/dashboard`
+
+Include:
+
+- Followed creators.
+- Followed projects.
+- Watchlist.
+- Simulated participation records.
+- Project progress.
+- Recent project updates.
+- Notifications.
+- Activity history.
+
+Clearly label all simulated balances and allocations.
+
+Do not display simulated money as withdrawable money.
+
+## 5.13 Cultural Pulse
+
+Route: `/app/pulse`
+
+This page is Cripoo's local cultural intelligence feed.
+
+Display relevant public entertainment and creator-economy developments.
+
+Categories:
+
+- Music.
+- Film.
+- Comedy.
+- Social media.
+- Creator news.
+- Brand campaigns.
+- Events.
+- Industry developments.
+
+Each item should include:
+
+- Headline.
+- Short summary.
+- Source.
+- Source URL.
+- Publication time.
+- Relevant creators or projects.
+- Category.
+- AI classification.
+- Confidence.
+- Review status.
+
+Add filters for:
+
+- Country.
+- Category.
+- Date.
+- Creator.
+- Source.
+
+Support French, English, Pidgin, and Camfranglais where the underlying model can reliably interpret the content.
+
+Do not treat every social-media comment as verified information.
+
+Do not automatically change a project's financial valuation or simulated price because of sentiment.
+
+## 5.14 Brand marketplace
+
+Route: `/app/brands`
+
+This page connects brands with creators and creative projects.
+
+Include:
+
+- Featured brands.
+- Open partnership opportunities.
+- Brand campaign cards.
+- Creator recommendations.
+- Category filters.
+- Location filters.
+- Campaign budget ranges where supplied.
+- Application deadlines.
+
+## 5.15 Brand profile
+
+Route: `/app/brands/:brandId`
+
+Display:
+
+- Brand name.
+- Logo.
+- Description.
+- Industry.
+- Website.
+- Location.
+- Campaign history.
+- Active opportunities.
+- Contact or proposal action.
+
+## 5.16 Brand campaign detail
+
+Route: `/app/brands/campaigns/:campaignId`
+
+Display:
+
+- Campaign name.
+- Brand.
+- Campaign objective.
+- Target audience.
+- Desired creator categories.
+- Deliverables.
+- Campaign timeline.
+- Budget range, if supplied.
+- Application process.
+- Proposal form.
+
+## 5.17 Notifications
+
+Route: `/app/notifications`
+
+Types:
+
+- Project updates.
+- Claim updates.
+- Campaign updates.
+- Brand proposals.
+- New creator matches.
+- Project milestone updates.
+- Platform announcements.
+
+## 5.18 Settings
+
+Route: `/app/settings`
+
+Include:
+
+- Personal information.
+- Account type.
+- Profile settings.
+- Connected platforms.
+- Notification preferences.
+- Privacy settings.
+- Security.
+- Logout.
+
+---
+
+# 6. MOBILE EXPERIENCE
+
+The mobile experience must not simply shrink desktop components.
+
+Design specifically for smartphone use.
+
+## 6.1 Mobile navigation
+
+Bottom navigation:
+
+1. Home
+2. Explore
+3. Pulse
+4. Watchlist
+5. Profile
+
+Use a clean, compact navigation bar.
+
+## 6.2 Mobile home
+
+Show:
+
+- Welcome header.
+- Search bar.
+- Featured project carousel.
+- Trending creators.
+- Cultural Pulse preview.
+- Recently added projects.
+- Brand opportunities.
+
+## 6.3 Mobile project page
+
+Use a clear vertical layout:
+
+- Project cover.
+- Creator identity.
+- Project summary.
+- Campaign progress.
+- Follow action.
+- Performance metrics.
+- AI analysis.
+- Milestones.
+- Updates.
+- Related projects.
+
+Charts must be readable on narrow screens.
+
+## 6.4 Mobile creator dashboard
+
+Include:
+
+- Project cards.
+- Campaign status.
+- Performance summary.
+- Notifications.
+- Profile completion.
+- Quick project submission.
+
+## 6.5 Mobile-specific requirements
+
+- Touch-friendly controls.
+- No horizontal overflow.
+- Responsive typography.
+- Optimized images.
+- Skeleton loading.
+- Empty states.
+- Error states.
+- Offline-friendly shell where possible.
+- Accessible contrast.
+- Fast loading on slower mobile connections.
+
+---
+
+# 7. DESIGN SYSTEM
+
+Create a coherent, premium, modern financial-technology and creator-economy visual identity.
+
+The interface should feel like a serious technology platform, not a generic social media template.
+
+## 7.1 Visual direction
+
+Use:
+
+- Deep navy or near-black backgrounds.
+- Teal and blue accents.
+- Clean white or soft-grey text.
+- Green for positive performance indicators.
+- Amber for warnings.
+- Red for errors and negative status.
+
+Suggested starting palette:
+
+- Background: `#0A0F1D`
+- Surface: `#111A2B`
+- Elevated surface: `#172338`
+- Primary teal: `#14B8A6`
+- Secondary blue: `#3B82F6`
+- Positive: `#22C55E`
+- Warning: `#F59E0B`
+- Danger: `#EF4444`
+- Primary text: `#F8FAFC`
+- Secondary text: `#94A3B8`
+
+Use Poppins or another suitable modern sans-serif font.
+
+## 7.2 Components
+
+Create reusable components:
+
+- AppSidebar
+- MobileBottomNavigation
+- TopNavigation
+- SearchBar
+- CreatorCard
+- ProjectCard
+- BrandCard
+- CampaignCard
+- MetricCard
+- StatusBadge
+- VerificationBadge
+- ProgressBar
+- SharePriceChart
+- AudienceGrowthChart
+- CulturalPulseCard
+- ActivityFeed
+- NotificationItem
+- Modal
+- ConfirmationDialog
+- EmptyState
+- ErrorState
+- LoadingSkeleton
+- DataSourceBadge
+- AIAnalysisPanel
+
+## 7.3 Design rules
+
+- Avoid generic dashboard templates.
+- Avoid excessive gradients.
+- Avoid excessive glassmorphism.
+- Avoid unnecessary animations.
+- Use consistent spacing.
+- Use consistent border radii.
+- Make data hierarchy obvious.
+- Make charts legible.
+- Use real image assets or clearly marked demo placeholders.
+- Never invent a real creator's endorsement or partnership.
+
+---
+
+# 8. BACKEND ARCHITECTURE
+
+Use the existing backend repository and configuration.
+
+Preferred architecture:
+
+- Firebase Authentication.
+- Cloud Firestore.
+- Firebase Cloud Functions.
+- Firebase Storage, only for appropriate non-sensitive project assets.
+- Server-side AI services.
+- Server-side third-party API adapters.
+- Scheduled jobs where supported.
+
+The backend must be the source of truth for:
+
+- User permissions.
+- Creator claims.
+- Project status.
+- Funding campaign status.
+- Simulated participation records.
+- Project performance records.
+- AI assessments.
+- Brand campaigns.
+- Notifications.
+- Audit logs.
+
+The frontend must never be allowed to directly set:
+
+- Project funding totals.
+- Participation allocations.
+- Simulated prices.
+- Verification status.
+- AI assessment results.
+- Administrative roles.
+- Payment success status.
+
+All important changes must go through authenticated server-side functions.
+
+---
+
+# 9. DATABASE DESIGN
+
+Use Firestore collections with clear TypeScript interfaces.
+
+## 9.1 users/{uid}
+
+Fields:
+
+- uid
+- fullName
+- email
+- role
+- country
+- city
+- profileImageUrl
+- phoneNumber, if provided
+- accountStatus
+- createdAt
+- updatedAt
+
+## 9.2 entities/{entityId}
+
+Represents creators, agencies, and brands.
+
+Fields:
+
+- id
+- type
+- name
+- handle
+- biography
+- country
+- city
+- categories
+- profileImageUrl
+- coverImageUrl
+- website
+- platforms
+- affiliation
+- isClaimed
+- claimedByUid
+- verificationStatus
+- verifiedMetrics
+- cripooScore
+- scoreUpdatedAt
+- dataQuality
+- createdAt
+- updatedAt
+
+## 9.3 projects/{projectId}
+
+Fields:
+
+- id
+- issuerId
+- title
+- slug
+- description
+- category
+- coverImageUrl
+- location
+- targetAudience
+- distributionPlatforms
+- budgetBreakdown
+- requestedBudgetXAF
+- fundingTargetXAF
+- simulatedAmountRaisedXAF
+- campaignStartAt
+- campaignEndAt
+- status
+- milestones
+- rightsDeclaration
+- authorizationStatus
+- underwritingStatus
+- underwritingId
+- performanceSummary
+- createdAt
+- updatedAt
+
+## 9.4 races/{raceId}
+
+A Race is the exchange listing for a project.
+
+Fields:
+
+- id
+- projectId
+- issuerId
+- title
+- category
+- status
+- illustrativeUnitPriceXAF
+- totalIllustrativeUnits
+- simulatedUnitsAllocated
+- simulatedProgress
+- participationTermsVersion
+- openedAt
+- closedAt
+- priceHistory
+- createdAt
+- updatedAt
+
+All price and allocation fields in the hackathon version must be explicitly marked as simulated.
+
+## 9.5 payments/{paymentId}
+
+Prototype payment record:
+
+- id
+- uid
+- purpose
+- targetId
+- amountXAF
+- provider
+- providerReference
+- status
+- mode
+- createdAt
+- updatedAt
+
+Allowed prototype modes:
+
+- SIMULATED
+- SANDBOX
+
+Do not enable real collection or disbursement in the hackathon build.
+
+## 9.6 participation_records/{recordId}
+
+Fields:
+
+- id
+- uid
+- projectId
+- raceId
+- illustrativeUnits
+- illustrativeAmountXAF
+- recordStatus
+- simulationMode
+- createdAt
+
+## 9.7 project_updates/{updateId}
+
+Fields:
+
+- id
+- projectId
+- authorUid
+- title
+- body
+- attachments
+- createdAt
+
+## 9.8 creator_metrics/{metricId}
+
+Fields:
+
+- id
+- entityId
+- platform
+- metricType
+- metricValue
+- period
+- source
+- sourceUrl
+- collectedAt
+- confidence
+- isEstimated
+
+## 9.9 ai_assessments/{assessmentId}
+
+Fields:
+
+- id
+- targetType
+- targetId
+- model
+- promptVersion
+- assessmentType
+- score
+- confidence
+- positiveSignals
+- riskSignals
+- missingInformation
+- sourceReferences
+- humanReviewStatus
+- createdAt
+
+## 9.10 catalysts/{catalystId}
+
+Fields:
+
+- id
+- title
+- summary
+- category
+- sourceName
+- sourceUrl
+- publishedAt
+- relatedEntityIds
+- relatedProjectIds
+- sentiment
+- classification
+- confidence
+- reviewStatus
+- createdAt
+
+## 9.11 brand_campaigns/{campaignId}
+
+Fields:
+
+- id
+- brandId
+- title
+- description
+- objectives
+- creatorCategories
+- targetLocations
+- deliverables
+- budgetRange
+- applicationDeadline
+- status
+- createdAt
+- updatedAt
+
+## 9.12 brand_proposals/{proposalId}
+
+Fields:
+
+- id
+- campaignId
+- brandId
+- creatorId
+- projectId
+- proposalText
+- proposedDeliverables
+- status
+- createdAt
+- updatedAt
+
+## 9.13 notifications/{notificationId}
+
+Fields:
+
+- id
+- uid
+- title
+- message
+- type
+- targetUrl
+- read
+- createdAt
+
+## 9.14 audit_logs/{logId}
+
+Fields:
+
+- id
+- actorUid
+- action
+- targetType
+- targetId
+- metadata
+- createdAt
+
+Never store secrets, private identity documents, or full payment credentials in ordinary Firestore documents.
+
+---
+
+# 10. API DOCUMENTATION
+
+Create a versioned REST API.
+
+Base path:
+
+`/api/v1`
+
+Use JSON request and response bodies.
+
+Use Firebase Authentication ID tokens for protected endpoints.
+
+Use server-side role checks.
+
+Use consistent errors:
+
+- `400` — Invalid request.
+- `401` — Not authenticated.
+- `403` — Insufficient permission.
+- `404` — Resource not found.
+- `409` — Conflict.
+- `422` — Validation failed.
+- `429` — Rate limit exceeded.
+- `500` — Internal server error.
+
+All list endpoints should support pagination.
+
+## 10.1 Authentication
+
+`GET /api/v1/me`
+
+Return the authenticated user's profile and role.
+
+`PATCH /api/v1/me`
+
+Update permitted profile fields.
+
+`POST /api/v1/me/notifications/read`
+
+Mark notifications as read.
+
+Authentication itself should use Firebase Auth where configured.
+
+## 10.2 Creators
+
+`GET /api/v1/creators`
+
+Query parameters:
+
+- search
+- category
+- country
+- city
+- platform
+- claimed
+- sort
+- limit
+- cursor
+
+`GET /api/v1/creators/:creatorId`
+
+Return public creator profile information.
+
+`POST /api/v1/creators`
+
+Create a creator profile when permitted.
+
+`PATCH /api/v1/creators/:creatorId`
+
+Update permitted creator information.
+
+`POST /api/v1/creators/:creatorId/claim`
+
+Start a profile claim.
+
+`GET /api/v1/creators/:creatorId/metrics`
+
+Return available performance metrics and source metadata.
+
+`GET /api/v1/creators/:creatorId/projects`
+
+Return the creator's projects.
+
+## 10.3 Projects
+
+`GET /api/v1/projects`
+
+Query parameters:
+
+- search
+- category
+- country
+- city
+- status
+- sort
+- limit
+- cursor
+
+`POST /api/v1/projects`
+
+Create a project draft.
+
+`GET /api/v1/projects/:projectId`
+
+Get project details.
+
+`PATCH /api/v1/projects/:projectId`
+
+Update an authorized project.
+
+`POST /api/v1/projects/:projectId/submit`
+
+Submit a project for review.
+
+`POST /api/v1/projects/:projectId/updates`
+
+Create a project update.
+
+`GET /api/v1/projects/:projectId/updates`
+
+Get project updates.
+
+`GET /api/v1/projects/:projectId/performance`
+
+Get performance metrics.
+
+`GET /api/v1/projects/:projectId/analysis`
+
+Get the latest AI assessment.
+
+## 10.4 Races
+
+`GET /api/v1/races`
+
+List public Race listings.
+
+`GET /api/v1/races/:raceId`
+
+Get Race details.
+
+`GET /api/v1/races/:raceId/history`
+
+Get illustrative price and activity history.
+
+`GET /api/v1/races/:raceId/participation`
+
+Get the authenticated user's simulated participation record.
+
+`POST /api/v1/races/:raceId/simulate-participation`
+
+Create a demo participation record. Require authentication, validation, and a visible demo-mode flag.
+
+Do not create a real investment order.
+
+## 10.5 Watchlist
+
+`GET /api/v1/watchlist`
+
+Get the user's saved projects and creators.
+
+`POST /api/v1/watchlist`
+
+Add an item.
+
+`DELETE /api/v1/watchlist/:itemId`
+
+Remove an item.
+
+## 10.6 AI analysis
+
+`POST /api/v1/ai/assessments`
+
+Create an authorized analysis request.
+
+`GET /api/v1/ai/assessments/:assessmentId`
+
+Get an assessment.
+
+`GET /api/v1/ai/assessments`
+
+List permitted assessments.
+
+`POST /api/v1/ai/creator-discovery`
+
+Run a controlled creator discovery job.
+
+`POST /api/v1/ai/cultural-pulse`
+
+Run a Cultural Pulse collection and classification job.
+
+These endpoints must be protected against abuse and excessive API usage.
+
+## 10.7 Cultural Pulse
+
+`GET /api/v1/pulse`
+
+Query parameters:
+
+- category
+- country
+- creatorId
+- projectId
+- dateFrom
+- dateTo
+- limit
+- cursor
+
+`GET /api/v1/pulse/:catalystId`
+
+Get an individual catalyst.
+
+`POST /api/v1/pulse/:catalystId/review`
+
+Administrator review action.
+
+## 10.8 Brands
+
+`GET /api/v1/brands`
+
+`GET /api/v1/brands/:brandId`
+
+`GET /api/v1/brand-campaigns`
+
+`POST /api/v1/brand-campaigns`
+
+`GET /api/v1/brand-campaigns/:campaignId`
+
+`POST /api/v1/brand-campaigns/:campaignId/proposals`
+
+`GET /api/v1/brand-proposals`
+
+`PATCH /api/v1/brand-proposals/:proposalId`
+
+All write operations must verify the user's role and ownership.
+
+## 10.9 Admin
+
+`GET /api/v1/admin/overview`
+
+`GET /api/v1/admin/projects`
+
+`POST /api/v1/admin/projects/:projectId/review`
+
+`GET /api/v1/admin/claims`
+
+`POST /api/v1/admin/claims/:claimId/review`
+
+`GET /api/v1/admin/data-sources`
+
+`GET /api/v1/admin/audit-logs`
+
+All admin routes require server-side administrator authorization.
+
+## 10.10 API response structure
+
+Use a consistent response format.
+
+Successful response:
+
+{
+  "success": true,
+  "data": {},
+  "meta": {
+    "requestId": "request-id"
+  }
+}
+
+Paginated response:
+
+{
+  "success": true,
+  "data": [],
+  "pagination": {
+    "limit": 20,
+    "nextCursor": null,
+    "hasMore": false
+  }
+}
+
+Error response:
+
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "The supplied project information is invalid."
+  },
+  "meta": {
+    "requestId": "request-id"
+  }
+}
+
+Create OpenAPI documentation for all implemented endpoints.
+
+Do not document endpoints as operational until they have actually been implemented and tested.
+
+---
+
+# 11. AI ENGINE
+
+Build AI services as separate backend modules.
+
+The AI must assist with discovery, organization, analysis, and monitoring. It must not autonomously approve legal rights, promise financial returns, or make investment decisions.
+
+## 11.1 Creator Discovery Agent
+
+Purpose:
+
+Discover public creator profiles from permitted data sources.
+
+Inputs:
+
+- Search keywords.
+- Country.
+- City.
+- Category.
+- Platform.
+
+Outputs:
+
+- Creator name.
+- Platform.
+- Platform ID.
+- Profile URL.
+- Public profile image URL.
+- Available audience metrics.
+- Category suggestions.
+- Source URL.
+- Collection timestamp.
+- Data completeness.
+
+Responsibilities:
+
+1. Discover creators.
+2. Normalize data.
+3. Deduplicate profiles.
+4. Associate multiple platform profiles where evidence supports the match.
+5. Preserve source provenance.
+6. Flag uncertain matches.
+7. Store results as unclaimed profiles.
+
+Never invent creator profiles or audience numbers.
+
+## 11.2 Project Underwriting Agent
+
+Purpose:
+
+Analyze whether a submitted project has sufficient information and evidence for human review.
+
+Inputs:
+
+- Creator profile.
+- Project description.
+- Project budget.
+- Previous projects.
+- Public audience metrics.
+- Distribution strategy.
+- Project milestones.
+- Rights and authorization information.
+
+Outputs:
+
+- Project completeness score.
+- Audience traction indicators.
+- Historical performance summary.
+- Budget consistency observations.
+- Distribution readiness.
+- Positive signals.
+- Risks.
+- Missing information.
+- Confidence.
+- Human review recommendation.
+
+Use a transparent scoring framework.
+
+Possible dimensions:
+
+- Creator track record.
+- Audience traction.
+- Audience consistency.
+- Project clarity.
+- Budget completeness.
+- Distribution readiness.
+- Delivery feasibility.
+- Rights documentation completeness.
+
+Do not call the score a guaranteed valuation.
+
+Do not promise ROI.
+
+Do not generate a share price or investment recommendation as if it were objective financial advice.
+
+## 11.3 Cultural Pulse Agent
+
+Purpose:
+
+Identify relevant developments in the African creator economy.
+
+Inputs:
+
+- Permitted public news sources.
+- Licensed or authorized platform data.
+- Public entertainment articles.
+- Authorized social data.
+- Creator announcements.
+
+Outputs:
+
+- Headline.
+- Summary.
+- Category.
+- Source.
+- Publication date.
+- Related creator.
+- Related project.
+- Sentiment classification.
+- Risk classification.
+- Confidence.
+- Review status.
+
+The model should distinguish:
+
+- Positive attention.
+- Negative verified news.
+- Rumours.
+- Satire.
+- Harmless online disagreement.
+- Serious reputation concerns.
+- Unrelated content.
+
+Never treat unverified allegations as facts.
+
+Never automatically reprice a project based on sentiment.
+
+## 11.4 Creator Performance Agent
+
+Purpose:
+
+Track available public or authorized creator metrics over time.
+
+Metrics may include:
+
+- YouTube subscribers.
+- YouTube views.
+- Video publishing frequency.
+- Spotify monthly listeners.
+- Spotify popularity indicators where available.
+- Authorized TikTok metrics.
+- Audience growth.
+- Engagement indicators.
+
+Store the metric source and collection date.
+
+Clearly distinguish:
+
+- Public metrics.
+- Authorized private analytics.
+- Estimates.
+- Verified financial settlements.
+
+A view count is not revenue.
+
+A stream count is not a confirmed payout.
+
+## 11.5 Brand Matching Agent
+
+Purpose:
+
+Suggest relevant creator and project matches for brand campaigns.
+
+Inputs:
+
+- Campaign brief.
+- Brand industry.
+- Target audience.
+- Location.
+- Creator category.
+- Public audience metrics.
+- Creator availability, where known.
+
+Outputs:
+
+- Suggested creators.
+- Matching reasons.
+- Relevant projects.
+- Potential deliverables.
+- Missing information.
+- Confidence.
+
+Do not automatically contact creators or brands.
+
+---
+
+# 12. EXTERNAL API INTEGRATIONS
+
+Create a separate adapter for every provider.
+
+The application must remain functional in demo mode if a provider key is missing.
+
+Do not put secret keys in frontend code.
+
+## 12.1 YouTube Data API v3
+
+Purpose:
+
+- Search for channels.
+- Retrieve public channel details.
+- Retrieve available statistics.
+- Retrieve video information where permitted.
+
+Documentation:
+
+https://developers.google.com/youtube/v3/docs
+
+Environment placeholders:
+
+YOUTUBE_API_KEY=
+
+YOUTUBE_CLIENT_ID=
+
+YOUTUBE_CLIENT_SECRET=
+
+YOUTUBE_REDIRECT_URI=
+
+Use the public Data API for public information.
+
+YouTube Analytics data requiring creator authorization must use the appropriate OAuth flow and permissions.
+
+## 12.2 Spotify Web API
+
+Purpose:
+
+- Search artists.
+- Retrieve artist information.
+- Retrieve available public artist metadata.
+- Retrieve available track and album information.
+
+Documentation:
+
+https://developer.spotify.com/documentation/web-api
+
+Environment placeholders:
+
+SPOTIFY_CLIENT_ID=
+
+SPOTIFY_CLIENT_SECRET=
+
+SPOTIFY_REDIRECT_URI=
+
+Do not assume Spotify exposes all requested audience or financial metrics.
+
+Only implement fields actually returned by the API and permitted by its terms.
+
+## 12.3 Google Gemini
+
+Purpose:
+
+- Creator data classification.
+- Project assessment.
+- Cultural Pulse summarization.
+- Risk classification.
+- Brand matching.
+
+Environment placeholder:
+
+GEMINI_API_KEY=
+
+Model placeholder:
+
+GEMINI_MODEL=
+
+Use structured JSON output where supported.
+
+Validate every model response before storing it.
+
+Treat retrieved web content and user-submitted content as untrusted data. Never let external text override system instructions or database permissions.
+
+## 12.4 Apify
+
+Purpose:
+
+Use only approved actors and permitted data collection methods for relevant public creator information.
+
+Environment placeholders:
+
+APIFY_API_TOKEN=
+
+APIFY_ACTOR_ID=
+
+Do not bypass authentication, platform restrictions, rate limits, or access controls.
+
+If an approved source is unavailable, use mock data for the prototype.
+
+## 12.5 CamPay
+
+Intended future purpose:
+
+- Mobile Money collection.
+- Payment status updates.
+- Supported disbursement workflows.
+
+Documentation:
+
+[Insert the official CamPay documentation URL after confirming the provider's current API documentation.]
+
+Environment placeholders:
+
+CAMPAY_APP_USERNAME=
+
+CAMPAY_APP_PASSWORD=
+
+CAMPAY_BASE_URL=
+
+CAMPAY_WEBHOOK_SECRET=
+
+CAMPAY_MODE=sandbox
+
+For this hackathon version, implement a simulated payment adapter and, if credentials and provider approval are available, a sandbox-only adapter.
+
+Do not accept real investments or represent simulated escrow as actual escrow.
+
+## 12.6 Firebase
+
+Purpose:
+
+- Authentication.
+- Firestore.
+- Cloud Functions.
+- Storage for appropriate public project assets.
+
+Environment/configuration placeholders:
+
+FIREBASE_PROJECT_ID=
+
+FIREBASE_API_KEY=
+
+FIREBASE_AUTH_DOMAIN=
+
+FIREBASE_STORAGE_BUCKET=
+
+FIREBASE_MESSAGING_SENDER_ID=
+
+FIREBASE_APP_ID=
+
+FIREBASE_MEASUREMENT_ID=
+
+FIREBASE_SERVICE_ACCOUNT=
+
+Never expose Firebase Admin credentials to the frontend.
+
+Use Firebase Admin only in trusted backend code.
+
+Use strict Firestore security rules.
+
+## 12.7 Other providers
+
+Create optional integration adapters for:
+
+- Official Meta APIs, where access and permissions are available.
+- Official TikTok APIs, where access and permissions are available.
+- Licensed news feeds.
+- Authorized creator analytics sources.
+- Email notification provider.
+
+Do not assume that an API is available merely because it is listed here.
+
+Create a provider status page for administrators showing:
+
+- Provider name.
+- Configured or missing credentials.
+- Last successful request.
+- Last error.
+- Current integration mode.
+- Whether the provider is live, sandbox, or mocked.
+
+Never expose secrets in that status page.
+
+---
+
+# 13. ENVIRONMENT CONFIGURATION
+
+Create `.env.example` files with placeholders.
+
+Never commit a real `.env` file.
+
+Backend example:
+
+FIREBASE_PROJECT_ID=
+GEMINI_API_KEY=
+GEMINI_MODEL=
+YOUTUBE_API_KEY=
+YOUTUBE_CLIENT_ID=
+YOUTUBE_CLIENT_SECRET=
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
+APIFY_API_TOKEN=
+APIFY_ACTOR_ID=
+CAMPAY_APP_USERNAME=
+CAMPAY_APP_PASSWORD=
+CAMPAY_BASE_URL=
+CAMPAY_WEBHOOK_SECRET=
+CAMPAY_MODE=sandbox
+APP_ENV=development
+DEMO_MODE=true
+
+Frontend example:
+
+VITE_API_BASE_URL=
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_DEMO_MODE=true
+
+Important:
+
+Only public Firebase web configuration belongs in the frontend environment.
+
+All private provider credentials must remain server-side.
+
+Create a README section explaining where each credential comes from, where it must be stored, and whether it is optional or required.
+
+---
+
+# 14. TRANSACTION AND FINANCIAL PROTOTYPE
+
+The long-term Cripoo concept includes project funding and revenue participation.
+
+For this hackathon build, implement the user journey as a demonstration system.
+
+Required:
+
+- Simulated funding campaigns.
+- Simulated participation records.
+- Simulated payment statuses.
+- Simulated campaign progress.
+- Simulated project milestones.
+- Simulated participation history.
+- Demonstration cap table.
+- Clearly marked demo transactions.
+
+The system must never suggest that a simulated record represents actual ownership, an enforceable contract, a guaranteed payout, or a real bank balance.
+
+Real payment collection, financial participation, revenue rights, escrow, and payout distribution must remain disabled until appropriate legal, adult, provider, and operational approvals are obtained.
+
+The architecture should keep the payment provider behind an adapter so a properly approved future implementation can replace the simulator without rewriting the application.
+
+---
+
+# 15. PROJECT MILESTONES AND REPORTING
+
+Every project should support milestones.
+
+Example:
+
+1. Project approved.
+2. Production started.
+3. Production update submitted.
+4. Production completed.
+5. Project released.
+6. Performance report submitted.
+
+Each milestone should have:
+
+- Title.
+- Description.
+- Due date.
+- Status.
+- Evidence attachments.
+- Created date.
+- Updated date.
+- Reviewer notes where applicable.
+
+Creators should be able to submit updates.
+
+Administrators should be able to review updates.
+
+Supporters should be able to view public updates.
+
+---
+
+# 16. SECURITY AND DATA PROTECTION
+
+Implement:
+
+- Firebase Authentication.
+- Server-side role checks.
+- Strict Firestore rules.
+- Input validation.
+- Rate limiting.
+- Secure webhook verification where applicable.
+- Audit logs.
+- Safe file upload validation.
+- Private storage permissions.
+- Error handling without leaking secrets.
+- Environment-based configuration.
+- Request IDs.
+- Protection against duplicate submissions.
+- Idempotency for transaction-like operations.
+
+Never:
+
+- Trust client-submitted financial totals.
+- Allow clients to modify administrative roles.
+- Expose private documents publicly.
+- Put service account credentials in the frontend.
+- Log API secrets.
+- Treat AI output as trusted authorization.
+- Accept arbitrary webhook calls as successful payments.
+
+For the demo, do not collect real national identity documents or payment credentials.
+
+---
+
+# 17. ADMINISTRATION PANEL
+
+Route: `/admin`
+
+Build a separate protected administration area.
+
+Pages:
+
+1. Overview.
+2. User management.
+3. Creator management.
+4. Creator claims.
+5. Project review.
+6. Underwriting review.
+7. Cultural Pulse moderation.
+8. Brand campaign review.
+9. Data source status.
+10. Audit logs.
+11. Demo data management.
+
+Overview metrics:
+
+- Total registered users.
+- Total creator profiles.
+- Claimed creators.
+- Projects submitted.
+- Projects awaiting review.
+- Open demo campaigns.
+- Active brand campaigns.
+- Data collection status.
+
+All figures must come from actual database records or clearly labeled seed data.
+
+---
+
+# 18. SEED DATA AND DEMONSTRATION MODE
+
+The platform must be demonstrable even when external API keys are unavailable.
+
+Create seed data for:
+
+- 30 creator profiles.
+- 10 brands.
+- 5 agencies.
+- 12 creative projects.
+- 6 open demonstration Races.
+- 10 Cultural Pulse items.
+- 8 brand campaigns.
+- Example project milestones.
+- Example performance history.
+- Example AI assessments.
+
+Use fictional demonstration profiles unless real public creator information is sourced, checked, and appropriately attributed.
+
+Clearly identify seed data in the database.
+
+Do not represent fictional data as real creator endorsements or actual campaigns.
+
+Create a repeatable seed script.
+
+The seed script must not create duplicate records every time it runs.
+
+---
+
+# 19. RECOMMENDED REPOSITORY ORGANIZATION
+
+Adapt this structure to the existing repositories. Do not recreate them unnecessarily.
+
+## Backend repository
+
+cripoo-backend/
+
+functions/
+  src/
+    api/
+      routes/
+      middleware/
+      controllers/
+    agents/
+      creatorDiscoveryAgent.ts
+      projectUnderwriterAgent.ts
+      culturalPulseAgent.ts
+      creatorPerformanceAgent.ts
+      brandMatchingAgent.ts
+    ai-services/
+      geminiClient.ts
+      promptTemplates/
+      outputValidators/
+    scrapers/
+      youtubeCollector.ts
+      spotifyCollector.ts
+      newsCollector.ts
+      authorizedSocialCollector.ts
+    data/
+      normalizeCreator.ts
+      normalizeMetrics.ts
+      deduplicateCreators.ts
+    payments/
+      paymentAdapter.ts
+      simulatedPaymentProvider.ts
+      campaySandboxProvider.ts
+    services/
+      creatorService.ts
+      projectService.ts
+      raceService.ts
+      brandService.ts
+      notificationService.ts
+    types/
+    validators/
+    tests/
+    index.ts
+
+firestore.rules
+
+.env.example
+
+README.md
+
+docs/
+  API.md
+  DATABASE.md
+  AI_AGENTS.md
+  INTEGRATIONS.md
+  SECURITY.md
+
+## Frontend repository
+
+cripoo-frontend/
+
+src/
+  app/
+  assets/
+  components/
+    common/
+    layout/
+    market/
+    creators/
+    projects/
+    pulse/
+    brands/
+    charts/
+    forms/
+  pages/
+    public/
+    auth/
+    app/
+    admin/
+  hooks/
+  services/
+    api/
+    auth/
+  context/
+  types/
+  utils/
+  styles/
+
+public/
+
+.env.example
+
+README.md
+
+docs/
+  DESIGN_SYSTEM.md
+  ROUTES.md
+
+The frontend should not independently implement AI logic or call private AI providers.
+
+It should communicate with the backend API.
+
+---
+
+# 20. TEAM OWNERSHIP AND INTEGRATION
+
+The project has three developers.
+
+## Member 1 — Backend, Payments and Legal Workflow
+
+Owns:
+
+- Firebase Authentication.
+- Firestore.
+- Cloud Functions.
+- Database security.
+- Backend API.
+- Project workflow.
+- Role permissions.
+- Simulated payment system.
+- Future payment adapter.
+- Claim workflow.
+- Project review.
+- Audit logs.
+
+## Member 2 — AI and Data Engineering
+
+Owns:
+
+- Creator discovery.
+- YouTube data adapter.
+- Spotify data adapter.
+- Approved social data adapters.
+- Gemini integration.
+- Creator normalization.
+- Creator deduplication.
+- Project underwriting.
+- Cultural Pulse.
+- Creator performance monitoring.
+- Brand matching.
+- Data provenance.
+- AI assessment interfaces.
+
+AI modules must be exported as backend services for Member 1 to call.
+
+Do not create a competing backend or a separate database.
+
+## Member 3 — Frontend and Product Experience
+
+Owns:
+
+- Web interface.
+- Mobile responsive experience.
+- Navigation.
+- Landing page.
+- Creator discovery.
+- Project exchange.
+- Project detail.
+- Creator dashboard.
+- Supporter dashboard.
+- Brand marketplace.
+- Admin UI.
+- Charts.
+- API integration.
+- Demo presentation screens.
+
+The frontend consumes the backend's documented APIs.
+
+## Integration rules
+
+- Keep the existing repositories.
+- Keep each developer's existing branch.
+- Do not commit directly to another developer's branch.
+- Agree on shared TypeScript interfaces.
+- Avoid changing shared files without coordination.
+- Export backend modules instead of duplicating them.
+- Document API contracts before frontend integration.
+- Use pull requests for integration.
+
+---
+
+# 21. DEVELOPMENT PHASES
+
+Build in the following sequence.
+
+## Phase 1 — Foundation
+
+- Inspect both repositories.
+- Confirm frameworks and versions.
+- Confirm environment configuration.
+- Confirm Firebase setup.
+- Confirm existing branch structure.
+- Agree on shared interfaces.
+- Create the application shell.
+- Create database types.
+- Create API response utilities.
+- Create seed data.
+
+Deliverable: The application starts and the web interface connects to the backend.
+
+## Phase 2 — Authentication and profiles
+
+- Registration.
+- Login.
+- User roles.
+- Protected routes.
+- Creator profiles.
+- Creator discovery.
+- Creator claim demo.
+
+Deliverable: Users can register and browse creator profiles.
+
+## Phase 3 — Projects and exchange
+
+- Project creation.
+- Project submission.
+- Admin review.
+- Project listing.
+- Race detail.
+- Simulated participation.
+- Watchlist.
+
+Deliverable: A user can follow the complete project submission and demo participation journey.
+
+## Phase 4 — AI and data
+
+- YouTube adapter.
+- Spotify adapter.
+- Creator normalization.
+- Creator discovery agent.
+- Project underwriting.
+- Cultural Pulse.
+- Performance monitoring.
+
+Deliverable: The application can show sourced creator data and structured AI assessments, with demo fallback.
+
+## Phase 5 — Brand marketplace
+
+- Brand profiles.
+- Campaign creation.
+- Campaign discovery.
+- Proposal submission.
+- Proposal management.
+
+Deliverable: A brand can create a demonstration campaign and a creator can submit a proposal.
+
+## Phase 6 — Dashboards
+
+- Creator dashboard.
+- Supporter dashboard.
+- Brand dashboard.
+- Admin dashboard.
+- Notifications.
+- Analytics.
+
+Deliverable: Every role has an appropriate working dashboard.
+
+## Phase 7 — Mobile experience
+
+- Mobile navigation.
+- Mobile home.
+- Mobile creator discovery.
+- Mobile project detail.
+- Mobile dashboards.
+- PWA support if applicable.
+
+Deliverable: All primary workflows are usable on a smartphone.
+
+## Phase 8 — Testing and demo
+
+- API tests.
+- Authentication tests.
+- Role permission tests.
+- Firestore rules tests.
+- UI tests.
+- Mobile responsiveness checks.
+- AI output validation.
+- Seed data verification.
+- Demo walkthrough.
+- Error-state verification.
+
+Deliverable: A reliable demonstration with no broken primary workflows.
+
+---
+
+# 22. REQUIRED DEMONSTRATION JOURNEYS
+
+The final product must support these complete demonstrations.
+
+## Journey A — A supporter discovers a project
+
+1. Open Cripoo.
+2. Browse the home page.
+3. Open Explore.
+4. Search for a music project.
+5. Open the project.
+6. Review the creator.
+7. Review the project budget.
+8. View the AI analysis.
+9. Follow the project.
+10. View it in the watchlist.
+
+## Journey B — A creator submits a project
+
+1. Register as a creator.
+2. Open the creator dashboard.
+3. Complete the profile.
+4. Start a project submission.
+5. Enter project details.
+6. Enter the production budget.
+7. Add milestones.
+8. Submit the project.
+9. View its review status.
+10. View the AI assessment when available.
+
+## Journey C — An administrator reviews a project
+
+1. Sign in as an administrator.
+2. Open the admin panel.
+3. Open submitted projects.
+4. Review the project information.
+5. Review the AI assessment.
+6. Identify missing information.
+7. Request additional information or approve it for demo listing.
+8. View the updated status.
+
+## Journey D — A brand finds a creator
+
+1. Sign in as a brand.
+2. Open the brand marketplace.
+3. Search for creators.
+4. Filter by category.
+5. Open a creator profile.
+6. Open a relevant project.
+7. Submit a partnership opportunity.
+8. View the proposal status.
+
+## Journey E — Cultural Pulse
+
+1. Open Cultural Pulse.
+2. Browse local entertainment developments.
+3. Filter by category.
+4. Open an item.
+5. Review the source.
+6. View related creators or projects.
+7. View AI classification and confidence.
+8. View its moderation status.
+
+## Journey F — Mobile user
+
+1. Open Cripoo on a smartphone.
+2. Register or log in.
+3. Browse projects.
+4. Open a project.
+5. Follow it.
+6. View creator information.
+7. Browse Cultural Pulse.
+8. Open the watchlist.
+9. Receive a notification.
+
+---
+
+# 23. QUALITY REQUIREMENTS
+
+The application must:
+
+- Use TypeScript where supported.
+- Have reusable components.
+- Have clear folder organization.
+- Validate forms.
+- Handle API errors.
+- Show loading states.
+- Show empty states.
+- Show success states.
+- Show permission errors.
+- Be responsive.
+- Avoid horizontal overflow.
+- Avoid broken routes.
+- Avoid dead buttons.
+- Avoid fake live data.
+- Avoid hardcoded secrets.
+- Avoid duplicated API logic.
+- Avoid unvalidated AI output.
+- Include a README.
+- Include API documentation.
+- Include an environment-variable guide.
+- Include a demo setup guide.
+
+Use appropriate tests for the existing framework.
+
+Do not introduce unnecessary dependencies.
+
+Do not change framework versions without a clear reason.
+
+---
+
+# 24. ACCEPTANCE CRITERIA
+
+The project is not complete until all the following are satisfied.
+
+### Product
+
+- Public landing page works.
+- Authentication works.
+- Role-based navigation works.
+- Creator discovery works.
+- Creator profiles work.
+- Project submission works.
+- Project detail works.
+- Project review works.
+- Watchlist works.
+- Cultural Pulse works with seed or live data.
+- Brand marketplace works.
+- Brand proposals work.
+- Creator dashboard works.
+- Supporter dashboard works.
+- Admin dashboard works.
+- Mobile navigation works.
+
+### Backend
+
+- API endpoints are implemented.
+- Authentication is enforced.
+- Role permissions are enforced.
+- Database records are validated.
+- Firestore rules are tested.
+- API errors are consistent.
+- Seed scripts are repeatable.
+- Demo transactions are clearly marked.
+
+### AI
+
+- AI provider is configured through environment variables.
+- AI output is validated.
+- Creator data retains source provenance.
+- Missing data is identified.
+- Assessments show confidence.
+- Human review is supported.
+- AI cannot approve legal rights or financial transactions.
+
+### Integrations
+
+- Missing API keys do not crash the application.
+- Demo adapters work.
+- Provider errors are handled.
+- Credentials are server-side.
+- Integration status is visible to administrators.
+
+### Mobile
+
+- Main workflows work on a smartphone.
+- Cards fit the screen.
+- Charts are readable.
+- Forms are usable.
+- Navigation is touch-friendly.
+
+### Documentation
+
+- README exists for both repositories.
+- API documentation exists.
+- Database documentation exists.
+- AI documentation exists.
+- Environment setup is documented.
+- Demo instructions exist.
+
+---
+
+# 25. INSTRUCTIONS FOR THE CODING AI
+
+Follow these instructions throughout implementation.
+
+1. Begin by inspecting the existing codebase.
+2. Report the current architecture and identify existing implementations.
+3. Do not ask the developer to initialize repositories or branches that already exist.
+4. Do not delete existing code without explaining why.
+5. Work in small, coherent implementation milestones.
+6. Before editing a shared interface, identify which other developer uses it.
+7. Write actual working code, not just pseudocode.
+8. Create files in the correct existing repository.
+9. Use the existing package manager.
+10. Use the versions already installed unless an upgrade is necessary.
+11. Create `.env.example` files with placeholders.
+12. Never fabricate API credentials.
+13. Never pretend an external integration is working when it is mocked.
+14. Clearly label simulated data.
+15. Test each milestone before proceeding.
+16. Fix build errors before adding unrelated features.
+17. Keep frontend, backend, and AI responsibilities separate.
+18. Keep all sensitive operations on the backend.
+19. Document every implemented endpoint.
+20. Keep the application usable even when external API credentials are unavailable.
+
+For every milestone, report:
+
+- What you inspected.
+- What you created.
+- What you modified.
+- Which environment variables are needed.
+- Which API integrations are active.
+- Which integrations are mocked.
+- Which commands were executed.
+- Whether the build passed.
+- Which tests passed.
+- What remains incomplete.
+
+**Do not merely explain what should be built. Build it.**
+
+Start with the repository inspection, then implement Phase 1. Continue through the phases without replacing existing work or generating unrelated boilerplate.
+
+The final result must be a coherent Cripoo product prototype, not a collection of disconnected pages.
+
+---
+
+# FINAL PRODUCT VISION
+
+Cripoo should become a platform where African creative projects are discoverable, measurable, commercially connected, and easier to finance through properly structured partnerships.
+
+It is not simply a crowdfunding page.
+
+It is not simply a creator directory.
+
+It is not simply a social network.
+
+It is an infrastructure layer connecting creators, projects, supporters, brands, agencies, and data intelligence.
+
+**Build Cripoo as a serious creator-economy platform, designed for the realities and opportunities of Africa, beginning with Cameroon.**

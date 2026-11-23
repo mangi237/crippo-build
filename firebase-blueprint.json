@@ -1,0 +1,358 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated Crippo investor and creator profile with Mobile Money wallet balance and role flags.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "fullName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "email": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "city": { "type": "string", "maxLength": 80 },
+        "anonymousId": { "type": "string", "minLength": 3, "maxLength": 40 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "walletBalanceXAF": { "type": "number" },
+        "momoPhone": { "type": "string", "maxLength": 40 },
+        "momoNetwork": { "type": "string", "enum": ["MTN MoMo", "Orange Money"] },
+        "admin": { "type": "boolean" },
+        "isVerifiedCreator": { "type": "boolean" },
+        "creatorId": { "type": "string", "maxLength": 128 },
+        "totalRaisedXAF": { "type": "number" },
+        "currentValuationXAF": { "type": "number" },
+        "completedMilestones": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "fullName", "email", "anonymousId", "admin", "isVerifiedCreator", "createdAt", "updatedAt"]
+    },
+    "Creator": {
+      "title": "Creator",
+      "description": "Verified creator and active revenue-sharing Raise listed on the Crippo exchange.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "handle": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "raiseTitle": { "type": "string", "maxLength": 160 },
+        "raiseTitleFr": { "type": "string", "maxLength": 160 },
+        "summary": { "type": "string", "maxLength": 500 },
+        "summaryFr": { "type": "string", "maxLength": 500 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "coverUrl": { "type": "string", "maxLength": 500 },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Music & Albums",
+            "TikTok Series",
+            "Movies & Docs",
+            "Podcasts",
+            "Brand Campaigns",
+            "Music",
+            "Entertainment",
+            "Comedy",
+            "Film",
+            "Tech",
+            "Lifestyle"
+          ]
+        },
+        "city": { "type": "string", "maxLength": 80 },
+        "platform": { "type": "string", "enum": ["TikTok", "Facebook", "YouTube", "Multi-Platform"] },
+        "status": { "type": "string", "enum": ["OPEN", "FUNDED", "ENDED"] },
+        "escrowStatus": { "type": "string", "enum": ["ESCROW_HOLDING", "TRANCHE_1_RELEASED", "COMPLETED_LOCKED"] },
+        "distributorSplitEmail": { "type": "string", "maxLength": 160 },
+        "followersCount": { "type": "number" },
+        "engagementRate": { "type": "number" },
+        "viewVelocity": { "type": "number" },
+        "crippoScore": { "type": "number" },
+        "underwritingScore": { "type": "number" },
+        "projected12mRevenueXAF": { "type": "number" },
+        "netBudgetXAF": { "type": "number" },
+        "grossTargetXAF": { "type": "number" },
+        "totalShares": { "type": "number" },
+        "sharesRemaining": { "type": "number" },
+        "investorsCount": { "type": "number" },
+        "tradingVolumeXAF": { "type": "number" },
+        "baseSharePriceXAF": { "type": "number" },
+        "sharePriceXAF": { "type": "number" },
+        "priceChangePct": { "type": "number" },
+        "sparkline": { "type": "array" },
+        "priceHistory": { "type": "array" },
+        "totalRaisedXAF": { "type": "number" },
+        "targetRaiseXAF": { "type": "number" },
+        "revSharePct": { "type": "number" },
+        "roiDurationMonths": { "type": "number" },
+        "closesAt": { "type": "string", "format": "date-time" },
+        "isVerified": { "type": "boolean" },
+        "milestonesCompleted": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "name", "handle", "category", "sharePriceXAF", "priceChangePct", "tradingVolumeXAF", "isVerified", "createdAt", "updatedAt"]
+    },
+    "PredictionMarket": {
+      "title": "PredictionMarket",
+      "description": "Cultural Yes/No prediction contract priced dynamically in real time from Yes/No investor liquidity.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "creatorId": { "type": "string", "maxLength": 128 },
+        "creatorName": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string", "enum": ["Music & Albums", "TikTok Series", "Movies & Docs", "Awards", "Culture", "Tech"] },
+        "questionEn": { "type": "string", "minLength": 5, "maxLength": 240 },
+        "questionFr": { "type": "string", "minLength": 5, "maxLength": 240 },
+        "resolutionCriteria": { "type": "string", "maxLength": 500 },
+        "thumbnailUrl": { "type": "string", "maxLength": 500 },
+        "yesShares": { "type": "number" },
+        "noShares": { "type": "number" },
+        "yesPoolXAF": { "type": "number" },
+        "noPoolXAF": { "type": "number" },
+        "yesProbabilityPct": { "type": "number" },
+        "noProbabilityPct": { "type": "number" },
+        "totalVolumeXAF": { "type": "number" },
+        "sparkline": { "type": "array" },
+        "status": { "type": "string", "enum": ["OPEN", "RESOLVED_YES", "RESOLVED_NO"] },
+        "closesAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "category", "questionEn", "questionFr", "yesShares", "noShares", "yesPoolXAF", "noPoolXAF", "yesProbabilityPct", "noProbabilityPct", "totalVolumeXAF", "status", "closesAt", "createdAt", "updatedAt"]
+    },
+    "PredictionVote": {
+      "title": "PredictionVote",
+      "description": "Individual Yes/No contract stake held by a user on a PredictionMarket.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "predictionId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "questionEn": { "type": "string", "maxLength": 240 },
+        "questionFr": { "type": "string", "maxLength": 240 },
+        "side": { "type": "string", "enum": ["YES", "NO"] },
+        "shares": { "type": "number" },
+        "priceXAF": { "type": "number" },
+        "totalPaidXAF": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "predictionId", "side", "shares", "priceXAF", "totalPaidXAF", "createdAt"]
+    },
+    "Trade": {
+      "title": "Trade",
+      "description": "User share buy or secondary sell order on a listed creator Raise.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "creatorId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "creatorName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "creatorHandle": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "creatorAvatarUrl": { "type": "string", "maxLength": 500 },
+        "side": { "type": "string", "enum": ["BUY", "SELL"] },
+        "sharesHeld": { "type": "number" },
+        "entryPriceXAF": { "type": "number" },
+        "totalPaidXAF": { "type": "number" },
+        "ownershipPct": { "type": "number" },
+        "revSharePct": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["MTN MoMo", "Orange Money", "Wallet"] },
+        "status": { "type": "string", "enum": ["in_race", "roi_active", "settled"] },
+        "closesAt": { "type": "string", "format": "date-time" },
+        "roiDurationMonths": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "creatorId", "creatorName", "sharesHeld", "entryPriceXAF", "totalPaidXAF", "status", "createdAt"]
+    },
+    "WalletTransaction": {
+      "title": "WalletTransaction",
+      "description": "Mobile Money deposit, withdrawal, trade settlement, or royalty distribution ledger entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "type": { "type": "string", "enum": ["DEPOSIT", "WITHDRAW", "TRADE_BUY", "TRADE_SELL", "PREDICTION_VOTE", "ROYALTY_PAYOUT"] },
+        "network": { "type": "string", "enum": ["MTN MoMo", "Orange Money", "Wallet"] },
+        "phone": { "type": "string", "maxLength": 40 },
+        "amountXAF": { "type": "number" },
+        "reference": { "type": "string", "maxLength": 120 },
+        "status": { "type": "string", "enum": ["COMPLETED", "PENDING"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "type", "network", "amountXAF", "reference", "status", "createdAt"]
+    },
+    "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "Real-time market catalyst, price spike, escrow release, and dividend alert.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "titleEn": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "titleFr": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "bodyEn": { "type": "string", "maxLength": 360 },
+        "bodyFr": { "type": "string", "maxLength": 360 },
+        "kind": { "type": "string", "enum": ["CATALYST", "PRICE_SPIKE", "DIVIDEND", "ESCROW"] },
+        "creatorId": { "type": "string", "maxLength": 128 },
+        "deltaPct": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "titleEn", "titleFr", "kind", "createdAt"]
+    },
+    "BrandCampaign": {
+      "title": "BrandCampaign",
+      "description": "Sponsored creator-brand campaign contract open on the exchange.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "brandName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "titleEn": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "titleFr": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "category": { "type": "string", "maxLength": 80 },
+        "budgetXAF": { "type": "number" },
+        "deliverable": { "type": "string", "maxLength": 240 },
+        "status": { "type": "string", "enum": ["OPEN", "MATCHED"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "brandName", "titleEn", "titleFr", "budgetXAF", "status", "createdAt"]
+    },
+    "CreatorApplication": {
+      "title": "CreatorApplication",
+      "description": "Onboarding verification application with bio-code, KYC/MoMo match, and underwriting audit.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "stageName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "handle": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "category": { "type": "string", "maxLength": 60 },
+        "city": { "type": "string", "maxLength": 80 },
+        "facebookUrl": { "type": "string", "maxLength": 300 },
+        "tiktokUrl": { "type": "string", "maxLength": 300 },
+        "verificationMediaUrl": { "type": "string", "maxLength": 500 },
+        "bioVerificationCode": { "type": "string", "maxLength": 40 },
+        "kycDocType": { "type": "string", "enum": ["CNI", "Passport", "RCCM"] },
+        "momoNumber": { "type": "string", "maxLength": 40 },
+        "netBudgetXAF": { "type": "number" },
+        "totalShares": { "type": "number" },
+        "targetRaiseXAF": { "type": "number" },
+        "revSharePct": { "type": "number" },
+        "underwritingVerdict": { "type": "string", "maxLength": 500 },
+        "pitch": { "type": "string", "minLength": 10, "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "adminNotes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "stageName", "handle", "category", "pitch", "status", "createdAt", "updatedAt"]
+    },
+    "MemoRequest": {
+      "title": "MemoRequest",
+      "description": "Unlisted creator listing request submitted from search.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "requestedByUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "creatorName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "handle": { "type": "string", "maxLength": 80 },
+        "platform": { "type": "string", "enum": ["TikTok", "Facebook", "YouTube", "Other"] },
+        "socialUrl": { "type": "string", "maxLength": 300 },
+        "reason": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["pending", "reviewed", "listed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "requestedByUid", "creatorName", "platform", "status", "createdAt"]
+    },
+    "NewsPost": {
+      "title": "NewsPost",
+      "description": "Cultural catalyst and blog/social pulse update linked to market price impact.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "sourcePlatform": { "type": "string", "enum": ["facebook", "tiktok", "editorial"] },
+        "sourceName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "authorHandle": { "type": "string", "maxLength": 80 },
+        "headline": { "type": "string", "minLength": 3, "maxLength": 240 },
+        "thumbnailUrl": { "type": "string", "maxLength": 500 },
+        "externalUrl": { "type": "string", "maxLength": 500 },
+        "category": { "type": "string", "enum": ["Trending", "Entertainment", "Tech", "Local News", "Music"] },
+        "creatorId": { "type": "string", "maxLength": 128 },
+        "creatorName": { "type": "string", "maxLength": 120 },
+        "city": { "type": "string", "maxLength": 60 },
+        "sentiment": { "type": "string", "enum": ["POSITIVE", "NEGATIVE", "NEUTRAL"] },
+        "impactPct": { "type": "number" },
+        "engagementScore": { "type": "number" },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "syncedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "sourcePlatform", "sourceName", "headline", "category", "publishedAt", "syncedAt"]
+    },
+    "SyncLog": {
+      "title": "SyncLog",
+      "description": "Admin audit log for cultural pulse & social aggregator sync runs.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "triggeredByUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "provider": { "type": "string", "maxLength": 80 },
+        "postsFetched": { "type": "number" },
+        "metricsUpdated": { "type": "number" },
+        "status": { "type": "string", "enum": ["success", "error", "unconfigured"] },
+        "message": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "triggeredByUid", "provider", "postsFetched", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profiles & MoMo cash wallet balances."
+    },
+    "/admins/{userId}": {
+      "schema": { "type": "object" },
+      "description": "Admin role marker documents."
+    },
+    "/creators/{creatorId}": {
+      "schema": { "$ref": "#/entities/Creator" },
+      "description": "Publicly listed creators and active revenue-sharing Raises."
+    },
+    "/predictions/{predictionId}": {
+      "schema": { "$ref": "#/entities/PredictionMarket" },
+      "description": "Yes/No cultural prediction markets."
+    },
+    "/prediction_votes/{voteId}": {
+      "schema": { "$ref": "#/entities/PredictionVote" },
+      "description": "Private user prediction contract stakes."
+    },
+    "/trades/{tradeId}": {
+      "schema": { "$ref": "#/entities/Trade" },
+      "description": "Private user buy/sell share positions."
+    },
+    "/wallet_transactions/{txId}": {
+      "schema": { "$ref": "#/entities/WalletTransaction" },
+      "description": "Private user MoMo & wallet ledger transactions."
+    },
+    "/notifications/{notifId}": {
+      "schema": { "$ref": "#/entities/NotificationItem" },
+      "description": "Global market alerts and personal notifications."
+    },
+    "/brand_campaigns/{campaignId}": {
+      "schema": { "$ref": "#/entities/BrandCampaign" },
+      "description": "Open brand partnership campaigns."
+    },
+    "/creator_applications/{appId}": {
+      "schema": { "$ref": "#/entities/CreatorApplication" },
+      "description": "Creator onboarding applications awaiting admin verification."
+    },
+    "/memo_requests/{memoId}": {
+      "schema": { "$ref": "#/entities/MemoRequest" },
+      "description": "Unlisted creator listing requests."
+    },
+    "/news_posts/{postId}": {
+      "schema": { "$ref": "#/entities/NewsPost" },
+      "description": "Cultural catalysts & blog momentum updates."
+    },
+    "/sync_logs/{logId}": {
+      "schema": { "$ref": "#/entities/SyncLog" },
+      "description": "Admin social media aggregator sync logs."
+    }
+  }
+}

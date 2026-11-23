@@ -1,0 +1,6 @@
+{
+  "name": "Crippo",
+  "description": "AI-underwritten creator project exchange, live Race funding, and brand partnership platform for Cameroon and Africa.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
