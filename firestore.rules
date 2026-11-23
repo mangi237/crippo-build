@@ -76,8 +76,8 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'id', 'ownerUid', 'name', 'handle', 'raiseTitle', 'raiseTitleFr', 'summary', 'summaryFr',
-          'avatarUrl', 'coverUrl', 'category', 'city', 'platform', 'status', 'escrowStatus',
-          'distributorSplitEmail', 'followersCount', 'engagementRate', 'viewVelocity',
+          'avatarUrl', 'coverUrl', 'category', 'city', 'platform', 'status', 'claimStatus', 'claimedByUid',
+          'escrowStatus', 'distributorSplitEmail', 'followersCount', 'engagementRate', 'viewVelocity',
           'crippoScore', 'underwritingScore', 'projected12mRevenueXAF',
           'netBudgetXAF', 'grossTargetXAF', 'totalShares', 'sharesRemaining', 'investorsCount',
           'tradingVolumeXAF', 'baseSharePriceXAF', 'sharePriceXAF', 'priceChangePct',
@@ -102,6 +102,8 @@ service cloud.firestore {
         && (!('city' in data) || (data.city is string && data.city.size() <= 80))
         && (!('platform' in data) || data.platform in ['TikTok', 'Facebook', 'YouTube', 'Multi-Platform'])
         && (!('status' in data) || data.status in ['OPEN', 'FUNDED', 'ENDED'])
+        && (!('claimStatus' in data) || data.claimStatus in ['UNCLAIMED', 'CLAIMED'])
+        && (!('claimedByUid' in data) || (data.claimedByUid is string && data.claimedByUid.size() <= 128))
         && (!('escrowStatus' in data) || data.escrowStatus in ['ESCROW_HOLDING', 'TRANCHE_1_RELEASED', 'COMPLETED_LOCKED'])
         && (!('distributorSplitEmail' in data) || (data.distributorSplitEmail is string && data.distributorSplitEmail.size() <= 160))
         && (!('followersCount' in data) || (data.followersCount is number && data.followersCount >= 0))
@@ -243,9 +245,10 @@ service cloud.firestore {
 
     function isValidBrandCampaign(data, campaignId) {
       return data.keys().hasAll(['id', 'brandName', 'titleEn', 'titleFr', 'budgetXAF', 'status', 'createdAt'])
-        && data.keys().hasOnly(['id', 'brandName', 'titleEn', 'titleFr', 'category', 'budgetXAF', 'deliverable', 'status', 'createdAt'])
+        && data.keys().hasOnly(['id', 'brandName', 'agencyName', 'titleEn', 'titleFr', 'category', 'budgetXAF', 'deliverable', 'status', 'createdAt'])
         && data.id == campaignId
         && data.brandName is string && data.brandName.size() >= 1 && data.brandName.size() <= 120
+        && (!('agencyName' in data) || (data.agencyName is string && data.agencyName.size() <= 120))
         && data.titleEn is string && data.titleEn.size() >= 2 && data.titleEn.size() <= 180
         && data.titleFr is string && data.titleFr.size() >= 2 && data.titleFr.size() <= 180
         && (!('category' in data) || (data.category is string && data.category.size() <= 80))
@@ -255,10 +258,26 @@ service cloud.firestore {
         && data.createdAt is string && data.createdAt.size() <= 64;
     }
 
+    function isValidBrandApplication(data, appId) {
+      return data.keys().hasAll(['id', 'campaignId', 'campaignTitle', 'brandName', 'creatorId', 'creatorName', 'uid', 'pitch', 'proposedFeeXAF', 'status', 'createdAt'])
+        && data.keys().hasOnly(['id', 'campaignId', 'campaignTitle', 'brandName', 'creatorId', 'creatorName', 'uid', 'pitch', 'proposedFeeXAF', 'status', 'createdAt'])
+        && data.id == appId
+        && isValidId(data.campaignId)
+        && data.campaignTitle is string && data.campaignTitle.size() >= 2 && data.campaignTitle.size() <= 180
+        && data.brandName is string && data.brandName.size() >= 1 && data.brandName.size() <= 120
+        && isValidId(data.creatorId)
+        && data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 120
+        && isValidId(data.uid)
+        && data.pitch is string && data.pitch.size() >= 10 && data.pitch.size() <= 600
+        && data.proposedFeeXAF is number && data.proposedFeeXAF >= 0
+        && data.status in ['pending', 'accepted', 'rejected']
+        && data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
     function isValidApplication(data, appId) {
       return data.keys().hasAll(['id', 'uid', 'stageName', 'handle', 'category', 'pitch', 'status', 'createdAt', 'updatedAt'])
         && data.keys().hasOnly([
-          'id', 'uid', 'stageName', 'handle', 'category', 'city',
+          'id', 'uid', 'claimCreatorId', 'stageName', 'handle', 'category', 'city',
           'facebookUrl', 'tiktokUrl', 'verificationMediaUrl',
           'bioVerificationCode', 'kycDocType', 'momoNumber', 'netBudgetXAF', 'totalShares',
           'targetRaiseXAF', 'revSharePct', 'underwritingVerdict',
@@ -266,6 +285,7 @@ service cloud.firestore {
         ])
         && data.id == appId
         && isValidId(data.uid)
+        && (!('claimCreatorId' in data) || (data.claimCreatorId is string && data.claimCreatorId.size() <= 128))
         && data.stageName is string && data.stageName.size() >= 2 && data.stageName.size() <= 120
         && data.handle is string && data.handle.size() >= 2 && data.handle.size() <= 80
         && data.category is string && data.category.size() >= 1 && data.category.size() <= 60
@@ -486,6 +506,25 @@ service cloud.firestore {
       allow get: if isValidId(campaignId);
       allow list: if true;
       allow create, update, delete: if isValidId(campaignId) && isAdmin() && isValidBrandCampaign(incoming(), campaignId);
+    }
+
+    // Verified Creator Applications to Brand Campaigns
+    match /brand_applications/{appId} {
+      allow get: if isValidId(appId) && (isOwner(existing().uid) || isAdmin());
+      allow list: if isSignedIn() && (existing().uid == request.auth.uid || isBootstrappedAdmin());
+      allow create: if isValidId(appId)
+        && isSignedIn()
+        && isValidBrandApplication(incoming(), appId)
+        && incoming().uid == request.auth.uid
+        && incoming().status == 'pending'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isVerifiedCreator == true;
+      allow update: if isValidId(appId)
+        && isAdmin()
+        && isValidBrandApplication(incoming(), appId)
+        && incoming().id == existing().id
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt;
+      allow delete: if false;
     }
 
     // Creator onboarding applications

@@ -198,7 +198,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
           <button
             type="submit"
             disabled={busy}
-            className="w-full py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-bold"
+            className="w-full py-3.5 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-bold"
           >
             {busy
               ? 'Processing...'

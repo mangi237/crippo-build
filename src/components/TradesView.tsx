@@ -32,20 +32,20 @@ export const TradesView: React.FC<TradesViewProps> = ({
 
   if (!user) {
     return (
-      <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-8 text-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-violet-600/15 text-violet-500 flex items-center justify-center mx-auto">
-          <Layers className="w-5 h-5" />
+      <div className="py-16 px-4 text-center space-y-5">
+        <div className="w-14 h-14 rounded-full bg-violet-600/15 text-violet-500 flex items-center justify-center mx-auto">
+          <Layers className="w-6 h-6" />
         </div>
-        <div className="space-y-1">
-          <h2 className="text-lg font-bold text-[#11081F] dark:text-[#F8F7FC]">{t.portfolio}</h2>
-          <p className="text-xs text-[#645582] dark:text-[#A99BC8] max-w-xs mx-auto">
-            Sign in to view your Raise shares, Yes/No prediction contracts, and MoMo Cash Wallet.
+        <div className="space-y-1.5">
+          <h2 className="text-xl font-bold text-[#11081F] dark:text-[#F8F7FC]">{t.portfolio}</h2>
+          <p className="text-xs sm:text-sm text-[#645582] dark:text-[#A99BC8] max-w-sm mx-auto leading-relaxed">
+            Sign in to view your active Raise trades, countdown timelines, Yes/No prediction contracts, and MoMo Cash Wallet.
           </p>
         </div>
         <button
           type="button"
           onClick={onRequireAuth}
-          className="px-6 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
+          className="px-7 py-3.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors"
         >
           {t.logIn}
         </button>
@@ -97,7 +97,7 @@ export const TradesView: React.FC<TradesViewProps> = ({
           <button
             type="button"
             onClick={onOpenWallet}
-            className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold tabular-nums"
+            className="px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold tabular-nums"
           >
             {t.wallet}: {formatXAF(user.walletBalanceXAF || 0)}
           </button>
@@ -121,15 +121,15 @@ export const TradesView: React.FC<TradesViewProps> = ({
 
       {/* Share Positions */}
       {trades.length === 0 && predictionVotes.length === 0 ? (
-        <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-8 text-center space-y-4">
-          <p className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">No active positions yet</p>
-          <p className="text-xs text-[#645582] dark:text-[#A99BC8] max-w-xs mx-auto">
+        <div className="py-14 px-4 text-center space-y-4">
+          <p className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">No active positions yet</p>
+          <p className="text-xs sm:text-sm text-[#645582] dark:text-[#A99BC8] max-w-sm mx-auto">
             Back any creator Raise or vote Yes/No on a cultural prediction market to build your portfolio.
           </p>
           <button
             type="button"
             onClick={onGoToMarket}
-            className="px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
+            className="px-6 py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
           >
             Explore {t.markets}
           </button>

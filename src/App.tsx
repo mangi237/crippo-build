@@ -17,6 +17,7 @@ import {
   subscribeBrandCampaigns,
   subscribeCreators,
   subscribeMyApplications,
+  subscribeMyBrandApplications,
   subscribeNewsPosts,
   subscribeNotifications,
   subscribePredictions,
@@ -26,6 +27,7 @@ import {
   subscribeUserWalletTxs,
 } from './services/firestoreService';
 import type {
+  BrandApplication,
   BrandCampaign,
   Creator,
   CreatorApplication,
@@ -53,6 +55,7 @@ import { SearchView } from './components/SearchView';
 import { ProfileView } from './components/ProfileView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AuthModal } from './components/AuthModal';
+import { OnboardingScreen, SplashScreen } from './components/SplashAndOnboarding';
 
 type WorkspaceTab = 'markets' | 'predictions' | 'portfolio' | 'search' | 'profile';
 
@@ -77,9 +80,16 @@ const MARKET_CATEGORIES: MarketCategoryFilter[] = [
   'Ended Raises',
 ];
 
+const ONBOARDING_STORAGE_KEY = 'crippo_onboarded_v1';
+
 export default function App() {
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<AppLang>('EN');
+  const [showSplash, setShowSplash] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return !window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
+  });
   const [isAdminRoute, setIsAdminRoute] = useState<boolean>(
     () => typeof window !== 'undefined' && window.location.pathname === '/admin'
   );
@@ -103,9 +113,11 @@ export default function App() {
   const [predictionVotes, setPredictionVotes] = useState<PredictionVote[]>([]);
   const [walletTxs, setWalletTxs] = useState<WalletTransaction[]>([]);
   const [myApplications, setMyApplications] = useState<CreatorApplication[]>([]);
+  const [myBrandApplications, setMyBrandApplications] = useState<BrandApplication[]>([]);
 
   // Overlays & Detail Views
   const [selectedRaise, setSelectedRaise] = useState<{ creator: Creator; side: 'BUY' | 'SELL' } | null>(null);
+  const [claimTargetCreator, setClaimTargetCreator] = useState<Creator | null>(null);
   const [votingPrediction, setVotingPrediction] = useState<{
     prediction: PredictionMarket;
     side: 'YES' | 'NO';
@@ -114,6 +126,12 @@ export default function App() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const t = translations[lang];
+
+  // Auto-dismiss Splash screen after brief branded intro
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowSplash(false), 900);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // Sync Tailwind dark class on <html>
   useEffect(() => {
@@ -143,6 +161,13 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function finishOnboarding() {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(ONBOARDING_STORAGE_KEY, '1');
+    }
+    setShowOnboarding(false);
+  }
+
   // Subscribe to public exchange feeds
   useEffect(() => {
     testConnection();
@@ -165,6 +190,7 @@ export default function App() {
     let unsubVotes: (() => void) | undefined;
     let unsubWtx: (() => void) | undefined;
     let unsubApps: (() => void) | undefined;
+    let unsubBrandApps: (() => void) | undefined;
     let unsubNotifs: (() => void) | undefined;
 
     const unsubAuth = onAuthStateChanged(auth, async (fbUser) => {
@@ -173,6 +199,7 @@ export default function App() {
       unsubVotes?.();
       unsubWtx?.();
       unsubApps?.();
+      unsubBrandApps?.();
       unsubNotifs?.();
 
       if (!fbUser) {
@@ -181,6 +208,7 @@ export default function App() {
         setPredictionVotes([]);
         setWalletTxs([]);
         setMyApplications([]);
+        setMyBrandApplications([]);
         unsubNotifs = subscribeNotifications(null, setNotifications);
         setAuthReady(true);
         return;
@@ -205,6 +233,7 @@ export default function App() {
       unsubVotes = subscribeUserPredictionVotes(fbUser.uid, setPredictionVotes);
       unsubWtx = subscribeUserWalletTxs(fbUser.uid, setWalletTxs);
       unsubApps = subscribeMyApplications(fbUser.uid, setMyApplications);
+      unsubBrandApps = subscribeMyBrandApplications(fbUser.uid, setMyBrandApplications);
       unsubNotifs = subscribeNotifications(fbUser.uid, setNotifications);
     });
 
@@ -215,6 +244,7 @@ export default function App() {
       unsubVotes?.();
       unsubWtx?.();
       unsubApps?.();
+      unsubBrandApps?.();
       unsubNotifs?.();
     };
   }, []);
@@ -283,16 +313,29 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function handleClaimCreator(creator: Creator) {
+    setSelectedRaise(null);
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    setClaimTargetCreator(creator);
+    setActiveTab('profile');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F7FC] dark:bg-[#0B0514] text-[#11081F] dark:text-[#F8F7FC] transition-colors">
+      {showSplash && <SplashScreen />}
+      {!showSplash && showOnboarding && !isAdminRoute && (
+        <OnboardingScreen lang={lang} onFinish={finishOnboarding} />
+      )}
+
       {/* Sticky Top Exchange Bar + Live Catalyst Ticker */}
       <TopTerminalBar
         user={user}
         portfolioValueXAF={portfolioValueXAF}
         lang={lang}
-        onToggleLang={() => setLang((l) => (l === 'EN' ? 'FR' : 'EN'))}
-        isDark={isDark}
-        onToggleTheme={() => setIsDark((d) => !d)}
         searchQuery={searchQuery}
         onSearchChange={(q) => {
           setSearchQuery(q);
@@ -314,10 +357,10 @@ export default function App() {
         onSelectCreator={(c) => openRaise(c, 'BUY')}
       />
 
-      {/* Desktop Sub-Navigation Bar for Switching Terminal Views */}
+      {/* Desktop Sub-Navigation Bar (Pure Solid Theme Surface) */}
       {!isAdminRoute && !liveSelectedRaiseCreator && (
-        <div className="hidden md:block border-b border-[#E4DFF2] dark:border-[#2A174A] bg-white/60 dark:bg-[#11081F]/90">
-          <div className="max-w-[1440px] mx-auto px-6 h-11 flex items-center justify-between gap-4 text-xs">
+        <div className="hidden md:block border-b border-[#E4DFF2] dark:border-[#2A174A] bg-white dark:bg-[#11081F]">
+          <div className="max-w-[1440px] mx-auto px-6 h-12 flex items-center justify-between gap-4 text-xs">
             <div className="flex items-center gap-1.5">
               {[
                 { id: 'markets', label: t.markets },
@@ -329,7 +372,7 @@ export default function App() {
                   key={item.id}
                   type="button"
                   onClick={() => setActiveTab(item.id as WorkspaceTab)}
-                  className={`px-3.5 py-1.5 rounded-lg font-semibold transition-colors ${
+                  className={`px-4 py-1.5 rounded-full font-semibold transition-colors ${
                     activeTab === item.id
                       ? 'bg-violet-600 text-white'
                       : 'text-[#645582] dark:text-[#A99BC8] hover:text-[#11081F] dark:hover:text-[#F8F7FC]'
@@ -349,7 +392,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => navigateAdmin(true)}
-                    className="px-2.5 py-1 rounded-lg bg-violet-600/15 text-violet-500 font-semibold hover:bg-violet-600/25"
+                    className="px-3 py-1 rounded-full bg-violet-600/15 text-violet-500 font-semibold hover:bg-violet-600/25"
                   >
                     {t.adminConsole}
                   </button>
@@ -361,7 +404,7 @@ export default function App() {
       )}
 
       {/* Main Content Container */}
-      <main className="max-w-[1440px] mx-auto px-4 md:px-6 pt-5 pb-24 md:pb-10">
+      <main className="max-w-[1440px] mx-auto px-4 md:px-6 pt-5 pb-28 md:pb-12">
         {isAdminRoute ? (
           <AdminDashboard
             user={user}
@@ -377,6 +420,7 @@ export default function App() {
             lang={lang}
             onBack={() => setSelectedRaise(null)}
             onRequireAuth={() => setAuthModalOpen(true)}
+            onClaim={handleClaimCreator}
           />
         ) : activeTab === 'portfolio' ? (
           <div className="max-w-4xl mx-auto">
@@ -400,6 +444,7 @@ export default function App() {
               predictions={predictions}
               lang={lang}
               onSelectCreator={(c, side) => openRaise(c, side || 'BUY')}
+              onClaimCreator={handleClaimCreator}
               onVotePrediction={(prediction, side) => setVotingPrediction({ prediction, side })}
               onRequireAuth={() => setAuthModalOpen(true)}
             />
@@ -409,8 +454,21 @@ export default function App() {
             <ProfileView
               user={user}
               creators={creators}
+              trades={trades}
+              predictionVotes={predictionVotes}
+              walletTxs={walletTxs}
+              brandCampaigns={brandCampaigns}
+              myBrandApplications={myBrandApplications}
               myApplications={myApplications}
+              claimTargetCreator={claimTargetCreator}
+              onClearClaimTarget={() => setClaimTargetCreator(null)}
               lang={lang}
+              onToggleLang={() => setLang((l) => (l === 'EN' ? 'FR' : 'EN'))}
+              isDark={isDark}
+              onToggleTheme={() => setIsDark((d) => !d)}
+              onReplayOnboarding={() => setShowOnboarding(true)}
+              onSelectCreator={(c) => openRaise(c, 'BUY')}
+              onOpenPortfolio={() => setActiveTab('portfolio')}
               onRequireAuth={() => setAuthModalOpen(true)}
               onOpenAdmin={() => navigateAdmin(true)}
               onOpenWallet={() => setWalletOpen(true)}
@@ -418,7 +476,7 @@ export default function App() {
           </div>
         ) : activeTab === 'predictions' ? (
           /* Mobile Dedicated Predictions Tab */
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="flex items-center justify-between">
               <h1 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">
                 {t.predictionMarkets}
@@ -429,7 +487,7 @@ export default function App() {
             </div>
 
             {filteredPredictions.length === 0 ? (
-              <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl p-8 text-center text-xs text-[#645582] dark:text-[#A99BC8]">
+              <div className="py-12 text-center text-xs text-[#645582] dark:text-[#A99BC8]">
                 {t.emptyPredictions}
               </div>
             ) : (
@@ -461,7 +519,7 @@ export default function App() {
                     <div
                       key={post.id}
                       onClick={() => linked && openRaise(linked, 'BUY')}
-                      className="cursor-pointer p-3.5 rounded-2xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] space-y-1.5"
+                      className="cursor-pointer p-4 rounded-3xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] space-y-1.5"
                     >
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-semibold text-violet-500">{post.sourceName}</span>
@@ -488,17 +546,17 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* LEFT 70% MAIN MARKET COLUMN */}
             <div className="lg:col-span-8 space-y-5">
-              {/* Category Filter Strip */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {/* Category Underline Line Tabs (Not Pill Buttons) */}
+              <div className="flex items-center gap-6 overflow-x-auto border-b border-[#E4DFF2] dark:border-[#2A174A]">
                 {MARKET_CATEGORIES.map((cat) => (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-colors ${
+                    className={`pb-3 pt-1 text-xs font-semibold whitespace-nowrap shrink-0 border-b-2 transition-colors ${
                       selectedCategory === cat
-                        ? 'bg-violet-600 text-white'
-                        : 'bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] text-[#645582] dark:text-[#A99BC8] hover:border-violet-500/60'
+                        ? 'border-violet-500 text-[#11081F] dark:text-[#F8F7FC]'
+                        : 'border-transparent text-[#645582] dark:text-[#A99BC8] hover:text-[#11081F] dark:hover:text-white'
                     }`}
                   >
                     {cat}
@@ -517,13 +575,13 @@ export default function App() {
                 />
               )}
 
-              {/* Brand Campaigns Panel when Brand Campaigns filter selected */}
+              {/* Brand & Agency Campaigns Panel */}
               {selectedCategory === 'Brand Campaigns' ? (
                 <section className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h2 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC] flex items-center gap-2">
                       <Briefcase className="w-4 h-4 text-violet-500" />
-                      <span>Brand Sponsorship Deals</span>
+                      <span>Brand & Agency Sponsorship Deals</span>
                     </h2>
                     <span className="text-xs text-[#645582] dark:text-[#A99BC8] tabular-nums">
                       {brandCampaigns.length} open
@@ -531,19 +589,27 @@ export default function App() {
                   </div>
 
                   {brandCampaigns.length === 0 ? (
-                    <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl p-8 text-center text-xs text-[#645582] dark:text-[#A99BC8]">
-                      No brand campaigns open yet.
+                    <div className="py-12 text-center space-y-3">
+                      <p className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                        No brand campaigns open yet
+                      </p>
+                      <p className="text-xs text-[#645582] dark:text-[#A99BC8] max-w-sm mx-auto">
+                        Partner brands and talent agencies publish verified creator sponsorship briefs here.
+                      </p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                       {brandCampaigns.map((camp) => (
                         <div
                           key={camp.id}
-                          className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl p-5 space-y-2.5"
+                          className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 space-y-3"
                         >
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-violet-500">{camp.brandName}</span>
-                            <span className="px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-500 font-semibold">
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <span className="font-bold text-violet-500 truncate">
+                              {camp.brandName}
+                              {camp.agencyName ? ` · via ${camp.agencyName}` : ''}
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 font-semibold shrink-0">
                               {camp.status}
                             </span>
                           </div>
@@ -555,11 +621,27 @@ export default function App() {
                               {camp.deliverable}
                             </p>
                           )}
-                          <div className="pt-2 border-t border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-between text-xs">
-                            <span className="text-[#645582] dark:text-[#A99BC8]">Campaign Pool</span>
-                            <strong className="font-mono text-[#11081F] dark:text-[#F8F7FC] tabular-nums">
-                              {formatXAF(camp.budgetXAF)}
-                            </strong>
+                          <div className="pt-2.5 border-t border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-between gap-2 text-xs">
+                            <div>
+                              <span className="text-[#645582] dark:text-[#A99BC8]">Pool: </span>
+                              <strong className="font-mono text-[#11081F] dark:text-[#F8F7FC] tabular-nums">
+                                {formatXAF(camp.budgetXAF)}
+                              </strong>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!user) {
+                                  setAuthModalOpen(true);
+                                } else {
+                                  setActiveTab('profile');
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                              }}
+                              className="px-4 py-1.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-semibold"
+                            >
+                              Apply as Creator
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -580,11 +662,11 @@ export default function App() {
                     </div>
 
                     {/* Desktop Cards vs Order Table Toggle */}
-                    <div className="hidden sm:inline-flex items-center p-1 rounded-xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A]">
+                    <div className="hidden sm:inline-flex items-center p-1 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A]">
                       <button
                         type="button"
                         onClick={() => setViewMode('cards')}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold ${
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold ${
                           viewMode === 'cards'
                             ? 'bg-violet-600 text-white'
                             : 'text-[#645582] dark:text-[#A99BC8]'
@@ -596,7 +678,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setViewMode('table')}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold ${
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold ${
                           viewMode === 'table'
                             ? 'bg-violet-600 text-white'
                             : 'text-[#645582] dark:text-[#A99BC8]'
@@ -609,25 +691,25 @@ export default function App() {
                   </div>
 
                   {filteredCreators.length === 0 ? (
-                    <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-8 text-center space-y-4">
-                      <div className="w-11 h-11 rounded-2xl bg-violet-600/15 text-violet-500 flex items-center justify-center mx-auto">
+                    <div className="py-12 px-4 text-center space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-violet-600/15 text-violet-500 flex items-center justify-center mx-auto">
                         <Sparkles className="w-5 h-5" />
                       </div>
                       <div className="space-y-1">
                         <p className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
                           {t.emptyRaises}
                         </p>
-                        <p className="text-xs text-[#645582] dark:text-[#A99BC8] max-w-sm mx-auto">
+                        <p className="text-xs text-[#645582] dark:text-[#A99BC8] max-w-sm mx-auto leading-relaxed">
                           {user?.admin
-                            ? 'Open the Exchange Console to publish initial Cameroon creator Raises or approve pending applications.'
-                            : 'Request an unlisted creator listing memo or apply to launch your own Raise.'}
+                            ? 'Open the Exchange Console to publish initial Cameroon creator Raises or approve pending claims.'
+                            : 'Request an unlisted creator listing memo or claim your creator profile in Profile -> Creator Mode.'}
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center justify-center gap-2.5">
                         <button
                           type="button"
                           onClick={() => setActiveTab('search')}
-                          className="px-4 py-2.5 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold"
+                          className="px-5 py-2.5 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold"
                         >
                           {t.requestListing}
                         </button>
@@ -635,7 +717,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => navigateAdmin(true)}
-                            className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
+                            className="px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
                           >
                             {t.adminConsole}
                           </button>
@@ -656,6 +738,7 @@ export default function App() {
                           creator={creator}
                           lang={lang}
                           onTrade={(c, side) => openRaise(c, side || 'BUY')}
+                          onClaim={handleClaimCreator}
                         />
                       ))}
                     </div>
@@ -663,7 +746,7 @@ export default function App() {
                 </section>
               )}
 
-              {/* Mobile Inline Cultural Predictions Preview so mobile home always showcases Predictions too */}
+              {/* Mobile Inline Cultural Predictions Preview */}
               {predictions.length > 0 && (
                 <section className="lg:hidden space-y-3 pt-2">
                   <div className="flex items-center justify-between">
@@ -709,9 +792,9 @@ export default function App() {
                 </div>
 
                 {filteredPredictions.length === 0 ? (
-                  <div className="rounded-2xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] p-5 text-xs text-[#645582] dark:text-[#A99BC8] text-center">
+                  <p className="py-4 text-xs text-[#645582] dark:text-[#A99BC8] text-center">
                     {t.emptyPredictions}
-                  </div>
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {filteredPredictions.slice(0, 4).map((pred) => (
@@ -727,7 +810,7 @@ export default function App() {
               </section>
 
               {/* 2. Cultural Catalysts Feed */}
-              <section className="rounded-2xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] p-4 space-y-3">
+              <section className="rounded-3xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Flame className="w-4 h-4 text-violet-500" />
@@ -740,7 +823,7 @@ export default function App() {
 
                 {newsPosts.length === 0 ? (
                   <p className="text-xs text-[#645582] dark:text-[#A99BC8]">
-                    Cultural market catalysts will appear here as creators hit milestones.
+                    Cultural market catalysts will appear here as local blogs and social hits move prices.
                   </p>
                 ) : (
                   <div className="divide-y divide-[#E4DFF2] dark:divide-[#2A174A]">
@@ -781,7 +864,7 @@ export default function App() {
               </section>
 
               {/* 3. Top Movers & Creators Leaderboard */}
-              <section className="rounded-2xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] p-4 space-y-3">
+              <section className="rounded-3xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] p-5 space-y-3">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-emerald-500" />
                   <h2 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
@@ -839,13 +922,13 @@ export default function App() {
         )}
       </main>
 
-      {/* Mobile Thumb-Driven Bottom Navigation Bar */}
+      {/* Mobile Floating Rounded Bottom Navigation Bar */}
       {!isAdminRoute && !liveSelectedRaiseCreator && (
         <nav
           aria-label="Mobile navigation"
-          className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#11081F]/95 backdrop-blur-md border-t border-[#E4DFF2] dark:border-[#2A174A] px-2 py-1.5"
+          className="md:hidden fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] px-2.5 py-1.5 shadow-lg"
         >
-          <div className="grid grid-cols-4 gap-1 max-w-md mx-auto">
+          <div className="grid grid-cols-4 gap-1">
             {[
               { id: 'markets', label: t.markets, icon: CandlestickChart },
               { id: 'predictions', label: t.predictions, icon: Percent },
@@ -862,13 +945,13 @@ export default function App() {
                     setActiveTab(item.id as WorkspaceTab);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl min-h-[46px] transition-colors ${
+                  className={`flex flex-col items-center justify-center gap-0.5 py-2 rounded-full min-h-[46px] transition-colors ${
                     active
-                      ? 'bg-violet-600/15 text-violet-600 dark:text-violet-400 font-semibold'
+                      ? 'bg-violet-600 text-white font-semibold'
                       : 'text-[#645582] dark:text-[#A99BC8]'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-4 h-4" />
                   <span className="text-[11px] leading-none">{item.label}</span>
                 </button>
               );

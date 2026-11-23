@@ -82,6 +82,8 @@ export interface Creator {
   city?: string;
   platform?: 'TikTok' | 'Facebook' | 'YouTube' | 'Multi-Platform';
   status?: 'OPEN' | 'FUNDED' | 'ENDED';
+  claimStatus?: 'UNCLAIMED' | 'CLAIMED';
+  claimedByUid?: string;
   escrowStatus?: 'ESCROW_HOLDING' | 'TRANCHE_1_RELEASED' | 'COMPLETED_LOCKED';
   distributorSplitEmail?: string;
   followersCount?: number;
@@ -196,6 +198,7 @@ export interface NotificationItem {
 export interface BrandCampaign {
   id: string;
   brandName: string;
+  agencyName?: string;
   titleEn: string;
   titleFr: string;
   category?: string;
@@ -205,9 +208,24 @@ export interface BrandCampaign {
   createdAt: string;
 }
 
+export interface BrandApplication {
+  id: string;
+  campaignId: string;
+  campaignTitle: string;
+  brandName: string;
+  creatorId: string;
+  creatorName: string;
+  uid: string;
+  pitch: string;
+  proposedFeeXAF: number;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+}
+
 export interface CreatorApplication {
   id: string;
   uid: string;
+  claimCreatorId?: string;
   stageName: string;
   handle: string;
   category: string;
@@ -289,4 +307,28 @@ export interface UnderwritingResult {
   underwritingScore: number;
   verdictEn: string;
   verdictFr: string;
+}
+
+export interface AgentGeneratedPrediction {
+  creatorId?: string;
+  creatorName?: string;
+  category: PredictionMarket['category'];
+  questionEn: string;
+  questionFr: string;
+  resolutionCriteria: string;
+  initialYesProbabilityPct: number;
+}
+
+export interface AgentPulseResult {
+  sourcesChecked: string[];
+  catalysts: NewsPost[];
+  generatedPredictions: AgentGeneratedPrediction[];
+  summary: string;
+}
+
+export interface BioVerificationAgentResult {
+  codeFoundInPublicProfile: boolean;
+  reachable: boolean;
+  confidenceScore: number;
+  notes: string;
 }

@@ -62,7 +62,7 @@ export const FeaturedHeroCarousel: React.FC<FeaturedHeroCarouselProps> = ({
               type="button"
               aria-label="Next featured market"
               onClick={() => setIndex((prev) => (prev + 1) % slides.length)}
-              className="w-8 h-8 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#11081F] dark:text-[#F8F7FC] hover:border-violet-500"
+              className="w-9 h-9 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#11081F] dark:text-[#F8F7FC] hover:border-violet-500"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -80,10 +80,10 @@ export const FeaturedHeroCarousel: React.FC<FeaturedHeroCarouselProps> = ({
                     src={active.creator.avatarUrl}
                     alt={active.creator.name}
                     referrerPolicy="no-referrer"
-                    className="w-11 h-11 rounded-2xl object-cover bg-violet-500/15 shrink-0"
+                    className="w-12 h-12 rounded-full object-cover bg-[#F8F7FC] dark:bg-[#11081F] shrink-0"
                   />
                 ) : (
-                  <div className="w-11 h-11 rounded-2xl bg-violet-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-violet-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
                     {active.creator.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
@@ -131,7 +131,7 @@ export const FeaturedHeroCarousel: React.FC<FeaturedHeroCarouselProps> = ({
             />
           </div>
 
-          <div className="lg:col-span-5 flex flex-col justify-between gap-4 p-4 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
+          <div className="lg:col-span-5 flex flex-col justify-between gap-4 p-5 rounded-3xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-[#645582] dark:text-[#A99BC8]">
                 <span>{t.raised}</span>
@@ -168,13 +168,13 @@ export const FeaturedHeroCarousel: React.FC<FeaturedHeroCarouselProps> = ({
             </p>
 
             <div className="grid grid-cols-2 gap-2.5 text-xs">
-              <div className="p-2.5 rounded-xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A]">
+              <div className="p-3 rounded-2xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A]">
                 <div className="text-[#645582] dark:text-[#A99BC8]">{t.sharesLeft}</div>
                 <div className="font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
                   {(active.creator.sharesRemaining ?? active.creator.totalShares ?? 1000).toLocaleString()}
                 </div>
               </div>
-              <div className="p-2.5 rounded-xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A]">
+              <div className="p-3 rounded-2xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A]">
                 <div className="text-[#645582] dark:text-[#A99BC8]">{t.investors}</div>
                 <div className="font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
                   {active.creator.investorsCount ?? 0}
@@ -185,7 +185,7 @@ export const FeaturedHeroCarousel: React.FC<FeaturedHeroCarouselProps> = ({
             <button
               type="button"
               onClick={() => onSelectCreator(active.creator)}
-              className="w-full py-3 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              className="w-full py-3.5 px-5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
             >
               <span>{t.joinRaise}</span>
               <ArrowUpRight className="w-4 h-4" />
@@ -226,7 +226,7 @@ export const FeaturedHeroCarousel: React.FC<FeaturedHeroCarouselProps> = ({
             />
           </div>
 
-          <div className="lg:col-span-5 p-4 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] space-y-4">
+          <div className="lg:col-span-5 p-5 rounded-3xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] space-y-4">
             <p className="text-xs text-[#544675] dark:text-[#B9ADD6]">
               {active.prediction.resolutionCriteria ||
                 'Contract settles at 1,000 XAF per winning share based on official public results.'}
@@ -243,7 +243,7 @@ export const FeaturedHeroCarousel: React.FC<FeaturedHeroCarouselProps> = ({
               </div>
               <div className="w-full h-2.5 rounded-full bg-red-500/30 overflow-hidden flex">
                 <div
-                  className="h-full bg-emerald-500"
+                  className="h-full bg-emerald-500 rounded-full"
                   style={{ width: `${active.prediction.yesProbabilityPct}%` }}
                 />
               </div>
@@ -253,14 +253,14 @@ export const FeaturedHeroCarousel: React.FC<FeaturedHeroCarouselProps> = ({
               <button
                 type="button"
                 onClick={() => onVotePrediction(active.prediction, 'YES')}
-                className="py-3 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-500 text-xs font-bold transition-colors tabular-nums"
+                className="py-3 px-4 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors tabular-nums"
               >
                 {t.voteYes} · {formatXAF(active.prediction.yesProbabilityPct * 10)}
               </button>
               <button
                 type="button"
                 onClick={() => onVotePrediction(active.prediction, 'NO')}
-                className="py-3 px-4 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-500 text-xs font-bold transition-colors tabular-nums"
+                className="py-3 px-4 rounded-full bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors tabular-nums"
               >
                 {t.voteNo} · {formatXAF(active.prediction.noProbabilityPct * 10)}
               </button>

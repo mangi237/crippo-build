@@ -59,6 +59,8 @@
         "city": { "type": "string", "maxLength": 80 },
         "platform": { "type": "string", "enum": ["TikTok", "Facebook", "YouTube", "Multi-Platform"] },
         "status": { "type": "string", "enum": ["OPEN", "FUNDED", "ENDED"] },
+        "claimStatus": { "type": "string", "enum": ["UNCLAIMED", "CLAIMED"] },
+        "claimedByUid": { "type": "string", "maxLength": 128 },
         "escrowStatus": { "type": "string", "enum": ["ESCROW_HOLDING", "TRANCHE_1_RELEASED", "COMPLETED_LOCKED"] },
         "distributorSplitEmail": { "type": "string", "maxLength": 160 },
         "followersCount": { "type": "number" },
@@ -203,6 +205,7 @@
       "properties": {
         "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
         "brandName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "agencyName": { "type": "string", "maxLength": 120 },
         "titleEn": { "type": "string", "minLength": 2, "maxLength": 180 },
         "titleFr": { "type": "string", "minLength": 2, "maxLength": 180 },
         "category": { "type": "string", "maxLength": 80 },
@@ -213,6 +216,25 @@
       },
       "required": ["id", "brandName", "titleEn", "titleFr", "budgetXAF", "status", "createdAt"]
     },
+    "BrandApplication": {
+      "title": "BrandApplication",
+      "description": "Campaign application submitted by a claimed and verified creator for a Brand or Agency sponsorship.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "campaignId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "campaignTitle": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "brandName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "creatorId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "creatorName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "pitch": { "type": "string", "minLength": 10, "maxLength": 600 },
+        "proposedFeeXAF": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "campaignId", "campaignTitle", "brandName", "creatorId", "creatorName", "uid", "pitch", "proposedFeeXAF", "status", "createdAt"]
+    },
     "CreatorApplication": {
       "title": "CreatorApplication",
       "description": "Onboarding verification application with bio-code, KYC/MoMo match, and underwriting audit.",
@@ -220,6 +242,7 @@
       "properties": {
         "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
         "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "claimCreatorId": { "type": "string", "maxLength": 128 },
         "stageName": { "type": "string", "minLength": 2, "maxLength": 120 },
         "handle": { "type": "string", "minLength": 2, "maxLength": 80 },
         "category": { "type": "string", "maxLength": 60 },
@@ -337,6 +360,10 @@
     "/brand_campaigns/{campaignId}": {
       "schema": { "$ref": "#/entities/BrandCampaign" },
       "description": "Open brand partnership campaigns."
+    },
+    "/brand_applications/{appId}": {
+      "schema": { "$ref": "#/entities/BrandApplication" },
+      "description": "Campaign applications from verified claimed creators."
     },
     "/creator_applications/{appId}": {
       "schema": { "$ref": "#/entities/CreatorApplication" },

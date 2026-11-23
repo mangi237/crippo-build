@@ -86,7 +86,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
           type="button"
           onClick={onClose}
           aria-label="Close sign in"
-          className="absolute top-5 right-5 w-9 h-9 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#645582] dark:text-[#A99BC8]"
+          className="absolute top-5 right-5 w-9 h-9 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#645582] dark:text-[#A99BC8]"
         >
           <X className="w-4 h-4" />
         </button>
@@ -104,7 +104,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className="mt-5 w-full py-3.5 px-4 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
+          className="mt-5 w-full py-3.5 px-5 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
         >
           Continue with Google
         </button>
@@ -115,14 +115,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
           <div className="flex-1 h-px bg-[#E4DFF2] dark:bg-[#2A174A]" />
         </div>
 
-        <div className="grid grid-cols-2 gap-1 p-1 bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl">
+        <div className="grid grid-cols-2 gap-1 p-1 bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full">
           <button
             type="button"
             onClick={() => {
               setMode('login');
               setError(null);
             }}
-            className={`py-2 text-xs font-semibold rounded-xl transition-colors ${
+            className={`py-2 text-xs font-semibold rounded-full transition-colors ${
               mode === 'login'
                 ? 'bg-white dark:bg-[#180D2B] text-[#11081F] dark:text-white'
                 : 'text-[#645582] dark:text-[#A99BC8]'
@@ -136,7 +136,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
               setMode('register');
               setError(null);
             }}
-            className={`py-2 text-xs font-semibold rounded-xl transition-colors ${
+            className={`py-2 text-xs font-semibold rounded-full transition-colors ${
               mode === 'register'
                 ? 'bg-white dark:bg-[#180D2B] text-[#11081F] dark:text-white'
                 : 'text-[#645582] dark:text-[#A99BC8]'
@@ -160,7 +160,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Full name"
-              className="w-full px-4 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl focus:outline-none focus:border-violet-500"
+              className="w-full px-5 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full focus:outline-none focus:border-violet-500"
             />
           )}
 
@@ -172,7 +172,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email address"
-              className="w-full pl-11 pr-4 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl focus:outline-none focus:border-violet-500"
+              className="w-full pl-11 pr-5 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full focus:outline-none focus:border-violet-500"
             />
           </div>
 
@@ -185,14 +185,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password (min 6 chars)"
-              className="w-full pl-11 pr-4 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl focus:outline-none focus:border-violet-500"
+              className="w-full pl-11 pr-5 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full focus:outline-none focus:border-violet-500"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 px-4 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
+            className="w-full py-3.5 px-5 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
           >
             {loading ? 'Please wait...' : mode === 'login' ? 'Log in' : 'Create account'}
           </button>

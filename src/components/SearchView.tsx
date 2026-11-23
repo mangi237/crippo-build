@@ -13,6 +13,7 @@ interface SearchViewProps {
   predictions: PredictionMarket[];
   lang: AppLang;
   onSelectCreator: (creator: Creator, side?: 'BUY' | 'SELL') => void;
+  onClaimCreator?: (creator: Creator) => void;
   onVotePrediction: (prediction: PredictionMarket, side: 'YES' | 'NO') => void;
   onRequireAuth: () => void;
 }
@@ -23,6 +24,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   predictions,
   lang,
   onSelectCreator,
+  onClaimCreator,
   onVotePrediction,
   onRequireAuth,
 }) => {
@@ -104,7 +106,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   return (
     <div className="space-y-5">
       <div className="relative">
-        <SearchIcon className="w-4 h-4 text-[#7E6FA1] absolute left-4 top-1/2 -translate-y-1/2" />
+        <SearchIcon className="w-4 h-4 text-[#7E6FA1] absolute left-5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
           value={queryText}
@@ -113,12 +115,12 @@ export const SearchView: React.FC<SearchViewProps> = ({
             if (submittedMemo) setSubmittedMemo(null);
           }}
           placeholder={t.searchPlaceholder}
-          className="w-full pl-11 pr-4 py-3 text-sm bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl text-[#11081F] dark:text-[#F8F7FC] placeholder:text-[#7E6FA1] focus:outline-none focus:border-violet-500"
+          className="w-full h-12 pl-12 pr-5 text-sm bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC] placeholder:text-[#7E6FA1] focus:outline-none focus:border-violet-500"
         />
       </div>
 
       {submittedMemo && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
+        <div className="p-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
           <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">Listing Memo Logged</p>
@@ -139,6 +141,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
                   creator={creator}
                   lang={lang}
                   onTrade={onSelectCreator}
+                  onClaim={onClaimCreator}
                 />
               ))}
             </div>
@@ -158,15 +161,15 @@ export const SearchView: React.FC<SearchViewProps> = ({
           )}
         </div>
       ) : (
-        <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-8 text-center space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-violet-600/15 text-violet-500 flex items-center justify-center mx-auto">
-            <Sparkles className="w-5 h-5" />
+        <div className="py-14 px-4 text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-violet-600/15 text-violet-500 flex items-center justify-center mx-auto">
+            <Sparkles className="w-6 h-6" />
           </div>
           <div className="space-y-1">
             <h3 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">
               {normalized ? `No listing for "${queryText.trim()}"` : t.emptyRaises}
             </h3>
-            <p className="text-xs text-[#645582] dark:text-[#A99BC8] max-w-xs mx-auto">
+            <p className="text-xs sm:text-sm text-[#645582] dark:text-[#A99BC8] max-w-sm mx-auto">
               Request an AI underwriting memo so our team can verify social metrics and open a Raise.
             </p>
           </div>
@@ -174,7 +177,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
             <button
               type="button"
               onClick={openMemoPrompt}
-              className="px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
+              className="px-6 py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
             >
               {t.requestListing}
             </button>
@@ -183,12 +186,12 @@ export const SearchView: React.FC<SearchViewProps> = ({
       )}
 
       {(filteredCreators.length > 0 || filteredPreds.length > 0) && normalized.length >= 2 && !showMemoForm && (
-        <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl p-4 flex items-center justify-between gap-3">
+        <div className="py-3 px-2 flex items-center justify-between gap-3 border-t border-[#E4DFF2] dark:border-[#2A174A]">
           <span className="text-xs text-[#645582] dark:text-[#A99BC8]">{t.requestListing}</span>
           <button
             type="button"
             onClick={openMemoPrompt}
-            className="px-3.5 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold shrink-0"
+            className="px-4 py-2 rounded-full bg-violet-600 text-white text-xs font-semibold shrink-0"
           >
             Request Memo
           </button>

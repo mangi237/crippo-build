@@ -1,14 +1,21 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { signOut } from 'firebase/auth';
 import {
   ArrowRight,
   Award,
+  Briefcase,
   Camera,
   CheckCircle2,
+  Clock,
   Copy,
+  Globe,
+  Layers,
   LogOut,
+  Moon,
+  Send,
   ShieldCheck,
   Sparkles,
+  Sun,
   Upload,
   User as UserIcon,
   Wallet,
@@ -17,20 +24,44 @@ import {
 import { auth } from '../services/firebase';
 import {
   runUnderwritingAudit,
+  submitBrandApplication,
   submitCreatorApplication,
   updateUserProfileFields,
   uploadFileToStorage,
 } from '../services/firestoreService';
-import type { Creator, CreatorApplication, UnderwritingResult, UserProfile } from '../types/crippo';
+import type {
+  BrandApplication,
+  BrandCampaign,
+  Creator,
+  CreatorApplication,
+  PredictionVote,
+  Trade,
+  UnderwritingResult,
+  UserProfile,
+  WalletTransaction,
+} from '../types/crippo';
 import type { AppLang } from '../i18n/translations';
 import { translations } from '../i18n/translations';
-import { formatXAF } from '../utils/format';
+import { formatTimeRemaining, formatXAF } from '../utils/format';
 
 interface ProfileViewProps {
   user: UserProfile | null;
   creators: Creator[];
+  trades: Trade[];
+  predictionVotes: PredictionVote[];
+  walletTxs: WalletTransaction[];
+  brandCampaigns: BrandCampaign[];
+  myBrandApplications: BrandApplication[];
   myApplications: CreatorApplication[];
+  claimTargetCreator?: Creator | null;
+  onClearClaimTarget?: () => void;
   lang: AppLang;
+  onToggleLang: () => void;
+  isDark: boolean;
+  onToggleTheme: () => void;
+  onReplayOnboarding: () => void;
+  onSelectCreator: (creator: Creator) => void;
+  onOpenPortfolio: () => void;
   onRequireAuth: () => void;
   onOpenAdmin: () => void;
   onOpenWallet: () => void;
@@ -39,13 +70,27 @@ interface ProfileViewProps {
 export const ProfileView: React.FC<ProfileViewProps> = ({
   user,
   creators,
+  trades,
+  predictionVotes,
+  walletTxs,
+  brandCampaigns,
+  myBrandApplications,
   myApplications,
+  claimTargetCreator,
+  onClearClaimTarget,
   lang,
+  onToggleLang,
+  isDark,
+  onToggleTheme,
+  onReplayOnboarding,
+  onSelectCreator,
+  onOpenPortfolio,
   onRequireAuth,
   onOpenAdmin,
   onOpenWallet,
 }) => {
   const t = translations[lang];
+  const [roleMode, setRoleMode] = useState<'investor' | 'creator'>('investor');
   const [editingProfile, setEditingProfile] = useState(false);
   const [fullNameInput, setFullNameInput] = useState(user?.fullName || '');
   const [cityInput, setCityInput] = useState(user?.city || '');
@@ -55,9 +100,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  // 3-Step Creator Onboarding & Pre-Listing Underwriting Wizard
+  // Claim / Launch Raise Wizard State
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const [claimCreatorId, setClaimCreatorId] = useState<string | undefined>(undefined);
   const [stageName, setStageName] = useState('');
   const [handle, setHandle] = useState('');
   const [category, setCategory] = useState('Music & Albums');
@@ -73,7 +119,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [spotifyMonthlyListeners, setSpotifyMonthlyListeners] = useState(24000);
   const [tiktokVelocity, setTiktokVelocity] = useState(180000);
   const [engagementRate, setEngagementRate] = useState(6.8);
-  const [diasporaSharePct, setDiasporaSharePct] = useState(28);
+  const [diasporaSharePct] = useState(28);
   const [auditResult, setAuditResult] = useState<UnderwritingResult | null>(null);
   const [auditing, setAuditing] = useState(false);
   const [pitch, setPitch] = useState('');
@@ -82,41 +128,147 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [wizardSubmitting, setWizardSubmitting] = useState(false);
   const [wizardError, setWizardError] = useState<string | null>(null);
 
+  // Brand Campaign Pitch Modal (Verified Creators Only)
+  const [applyingCampaign, setApplyingCampaign] = useState<BrandCampaign | null>(null);
+  const [brandPitch, setBrandPitch] = useState('');
+  const [brandFeeXAF, setBrandFeeXAF] = useState(1500000);
+  const [submittingBrandApp, setSubmittingBrandApp] = useState(false);
+  const [brandAppError, setBrandAppError] = useState<string | null>(null);
+
   const bioCode = useMemo(() => {
     if (!user) return 'CRIPPO-237';
     return `CRIPPO-${user.uid.slice(0, 6).toUpperCase()}`;
   }, [user]);
 
+  useEffect(() => {
+    if (claimTargetCreator && user) {
+      setRoleMode('creator');
+      setClaimCreatorId(claimTargetCreator.id);
+      setStageName(claimTargetCreator.name);
+      setHandle(claimTargetCreator.handle);
+      setCategory(claimTargetCreator.category || 'Music & Albums');
+      setCity(claimTargetCreator.city || 'Douala');
+      setWizardError(null);
+      setWizardStep(1);
+      setAuditResult(null);
+      setWizardOpen(true);
+      onClearClaimTarget?.();
+    }
+  }, [claimTargetCreator, user, onClearClaimTarget]);
+
+  const unclaimedCreators = useMemo(
+    () => creators.filter((c) => c.claimStatus === 'UNCLAIMED'),
+    [creators]
+  );
+
+  const creatorMap = useMemo(() => {
+    const m = new Map<string, Creator>();
+    for (const c of creators) m.set(c.id, c);
+    return m;
+  }, [creators]);
+
+  const liveEquityXAF = useMemo(() => {
+    let total = 0;
+    const netByCreator = new Map<string, number>();
+    for (const tr of trades) {
+      const prev = netByCreator.get(tr.creatorId) || 0;
+      netByCreator.set(tr.creatorId, prev + (tr.side === 'SELL' ? -tr.sharesHeld : tr.sharesHeld));
+    }
+    for (const [cid, qty] of netByCreator.entries()) {
+      if (qty <= 0) continue;
+      const c = creatorMap.get(cid);
+      if (c) total += qty * c.sharePriceXAF;
+    }
+    return total;
+  }, [trades, creatorMap]);
+
   if (!user) {
     return (
-      <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-8 text-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-violet-600/15 text-violet-500 flex items-center justify-center mx-auto">
-          <UserIcon className="w-5 h-5" />
+      <div className="space-y-8 py-10 px-2">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-violet-600/15 text-violet-500 flex items-center justify-center mx-auto">
+            <UserIcon className="w-7 h-7" />
+          </div>
+          <div className="space-y-1.5">
+            <h1 className="text-2xl font-bold text-[#11081F] dark:text-[#F8F7FC]">{t.profile}</h1>
+            <p className="text-xs sm:text-sm text-[#645582] dark:text-[#A99BC8] max-w-sm mx-auto leading-relaxed">
+              {lang === 'FR'
+                ? 'Connectez-vous pour gérer votre argent Mobile Money, suivre vos trades et réclamer votre profil créateur.'
+                : 'Sign in to manage your MoMo wallet, inspect active trades, switch to Creator Studio, or claim your creator profile.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onRequireAuth}
+            className="px-7 py-3.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors"
+          >
+            {t.logIn}
+          </button>
         </div>
-        <div className="space-y-1">
-          <h2 className="text-lg font-bold text-[#11081F] dark:text-[#F8F7FC]">{t.profile}</h2>
-          <p className="text-xs text-[#645582] dark:text-[#A99BC8] max-w-xs mx-auto">
-            {lang === 'FR'
-              ? 'Connectez-vous pour gérer votre profil, votre portefeuille MoMo ou postuler comme créateur.'
-              : 'Sign in to manage your investor account, MoMo wallet, or apply for a creator Raise.'}
-          </p>
+
+        {/* App Preferences remain accessible even before sign-in */}
+        <div className="rounded-3xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] p-5 space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[#645582] dark:text-[#A99BC8]">
+            {lang === 'FR' ? 'Préférences' : 'App Preferences'}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className="flex items-center justify-between px-4 py-3 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold"
+            >
+              <span>{lang === 'FR' ? 'Thème' : 'Theme'}</span>
+              <span className="inline-flex items-center gap-1.5 text-violet-500">
+                {isDark ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+                {isDark ? 'Dark' : 'Light'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={onToggleLang}
+              className="flex items-center justify-between px-4 py-3 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold"
+            >
+              <span>{lang === 'FR' ? 'Langue' : 'Language'}</span>
+              <span className="inline-flex items-center gap-1.5 text-violet-500">
+                <Globe className="w-3.5 h-3.5" />
+                {lang === 'FR' ? 'Français' : 'English'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={onReplayOnboarding}
+              className="flex items-center justify-between px-4 py-3 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold"
+            >
+              <span>{lang === 'FR' ? 'Guide d’accueil' : 'Intro Guide'}</span>
+              <Sparkles className="w-3.5 h-3.5 text-violet-500" />
+            </button>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={onRequireAuth}
-          className="px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors"
-        >
-          {t.logIn}
-        </button>
       </div>
     );
   }
 
   const myCreatorListing = user.creatorId
     ? creators.find((c) => c.id === user.creatorId)
-    : creators.find((c) => c.ownerUid === user.uid);
+    : creators.find((c) => c.claimedByUid === user.uid || c.ownerUid === user.uid);
 
   const latestApp = myApplications[0];
+
+  function openClaimWizard(preset?: Creator) {
+    if (preset) {
+      setClaimCreatorId(preset.id);
+      setStageName(preset.name);
+      setHandle(preset.handle);
+      setCategory(preset.category || 'Music & Albums');
+      setCity(preset.city || 'Douala');
+    } else {
+      setClaimCreatorId(undefined);
+    }
+    setWizardError(null);
+    setWizardStep(1);
+    setAuditResult(null);
+    setWizardOpen(true);
+  }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -202,6 +354,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       const grossTarget = auditResult?.grossTargetXAF || Math.round(netBudgetXAF * 1.05);
       await submitCreatorApplication({
         uid: user.uid,
+        claimCreatorId,
         stageName,
         handle,
         category,
@@ -221,6 +374,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       });
       setWizardOpen(false);
       setWizardStep(1);
+      setClaimCreatorId(undefined);
+      setProfileNotice(
+        lang === 'FR'
+          ? 'Demande de réclamation/vérification envoyée au comité.'
+          : 'Creator profile claim submitted for verification.'
+      );
     } catch (err) {
       setWizardError(err instanceof Error ? err.message : 'Submission failed.');
     } finally {
@@ -228,9 +387,37 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     }
   }
 
+  async function handleSubmitBrandPitch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user || !applyingCampaign || !user.isVerifiedCreator) return;
+    setSubmittingBrandApp(true);
+    setBrandAppError(null);
+    try {
+      await submitBrandApplication({
+        campaign: applyingCampaign,
+        uid: user.uid,
+        creatorId: myCreatorListing?.id || user.creatorId || user.uid,
+        creatorName: myCreatorListing?.name || user.fullName,
+        pitch: brandPitch,
+        proposedFeeXAF: brandFeeXAF,
+      });
+      setApplyingCampaign(null);
+      setBrandPitch('');
+      setProfileNotice(
+        lang === 'FR'
+          ? 'Candidature envoyée à la marque & agence.'
+          : 'Brand campaign pitch submitted for brand/agency review.'
+      );
+    } catch (err) {
+      setBrandAppError(err instanceof Error ? err.message : 'Could not apply to campaign.');
+    } finally {
+      setSubmittingBrandApp(false);
+    }
+  }
+
   return (
-    <div className="space-y-4">
-      {/* User Identity Card */}
+    <div className="space-y-5">
+      {/* 1. User Identity + Investor ↔ Creator Mode Switch */}
       <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 sm:p-6 space-y-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
@@ -240,14 +427,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   src={user.avatarUrl}
                   alt={user.fullName}
                   referrerPolicy="no-referrer"
-                  className="w-16 h-16 rounded-2xl object-cover bg-violet-500/15"
+                  className="w-16 h-16 rounded-full object-cover bg-[#F8F7FC] dark:bg-[#11081F]"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-2xl bg-violet-600 text-white text-lg font-bold flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-violet-600 text-white text-lg font-bold flex items-center justify-center">
                   {user.fullName.slice(0, 2).toUpperCase()}
                 </div>
               )}
-              <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-xl bg-white dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#11081F] dark:text-[#F8F7FC] group-hover:text-violet-500">
+              <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#11081F] dark:text-[#F8F7FC] group-hover:text-violet-500">
                 <Camera className="w-3.5 h-3.5" />
               </span>
               <input
@@ -283,34 +470,44 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               setMomoPhoneInput(user.momoPhone || '');
               setEditingProfile((v) => !v);
             }}
-            className="px-3.5 py-2 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC] shrink-0"
+            className="px-4 py-2 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC] shrink-0"
           >
             {editingProfile ? (lang === 'FR' ? 'Annuler' : 'Cancel') : lang === 'FR' ? 'Modifier' : 'Edit'}
           </button>
         </div>
 
-        {/* MoMo Cash Wallet Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
-          <div>
-            <div className="text-[11px] text-[#645582] dark:text-[#A99BC8]">
-              {lang === 'FR' ? 'Solde Cash Mobile Money' : 'Mobile Money Cash Balance'}
-            </div>
-            <div className="text-xl font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
-              {formatXAF(user.walletBalanceXAF || 0)}
-            </div>
-          </div>
+        {/* Investor ↔ Creator Studio Mode Switch */}
+        <div className="grid grid-cols-2 gap-1.5 p-1.5 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
           <button
             type="button"
-            onClick={onOpenWallet}
-            className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold inline-flex items-center gap-2 transition-colors"
+            onClick={() => setRoleMode('investor')}
+            className={`py-2.5 px-4 rounded-full text-xs font-bold transition-colors ${
+              roleMode === 'investor'
+                ? 'bg-violet-600 text-white'
+                : 'text-[#645582] dark:text-[#A99BC8] hover:text-[#11081F] dark:hover:text-white'
+            }`}
           >
-            <Wallet className="w-4 h-4" />
-            <span>{t.wallet}</span>
+            {lang === 'FR' ? 'Investisseur & Trades' : 'Investor & Trades'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setRoleMode('creator')}
+            className={`py-2.5 px-4 rounded-full text-xs font-bold transition-colors ${
+              roleMode === 'creator'
+                ? 'bg-violet-600 text-white'
+                : 'text-[#645582] dark:text-[#A99BC8] hover:text-[#11081F] dark:hover:text-white'
+            }`}
+          >
+            {user.isVerifiedCreator
+              ? 'Creator Studio'
+              : lang === 'FR'
+              ? 'Réclamer Profil Créateur'
+              : 'Creator Mode & Claim'}
           </button>
         </div>
 
         {profileNotice && (
-          <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30 text-xs text-violet-600 dark:text-violet-300">
+          <div className="px-4 py-3 rounded-2xl bg-violet-600/15 border border-violet-500/35 text-xs text-violet-600 dark:text-violet-300">
             {profileNotice}
           </div>
         )}
@@ -324,33 +521,360 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 value={fullNameInput}
                 onChange={(e) => setFullNameInput(e.target.value)}
                 placeholder="Full name"
-                className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC] focus:outline-none focus:border-violet-500"
+                className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC] focus:outline-none focus:border-violet-500"
               />
               <input
                 type="text"
                 value={cityInput}
                 onChange={(e) => setCityInput(e.target.value)}
                 placeholder="City (e.g. Buea, Douala)"
-                className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC] focus:outline-none focus:border-violet-500"
+                className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC] focus:outline-none focus:border-violet-500"
               />
               <input
                 type="tel"
                 value={momoPhoneInput}
                 onChange={(e) => setMomoPhoneInput(e.target.value)}
                 placeholder="MoMo (+237 6...)"
-                className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC] focus:outline-none focus:border-violet-500"
+                className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC] focus:outline-none focus:border-violet-500"
               />
             </div>
             <button
               type="submit"
               disabled={savingProfile}
-              className="px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
+              className="px-6 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
             >
-              {savingProfile ? 'Saving...' : 'Save'}
+              {savingProfile ? 'Saving...' : 'Save Changes'}
             </button>
           </form>
         )}
       </div>
+
+      {/* INVESTOR VIEW: YOUR MONEY + YOUR ACTIVE TRADES */}
+      {roleMode === 'investor' ? (
+        <div className="space-y-5">
+          {/* Your Money Summary */}
+          <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 sm:p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-violet-500">
+                  {lang === 'FR' ? 'Votre Argent' : 'Your Money'}
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-1">
+                  {formatXAF((user.walletBalanceXAF || 0) + liveEquityXAF)}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenWallet}
+                className="px-5 py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold inline-flex items-center gap-2"
+              >
+                <Wallet className="w-4 h-4" />
+                <span>{t.depositMomo} / {t.withdrawMomo}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 border-t border-[#E4DFF2] dark:border-[#2A174A] text-xs">
+              <div>
+                <div className="text-[#645582] dark:text-[#A99BC8]">MoMo Cash</div>
+                <div className="font-mono font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
+                  {formatXAF(user.walletBalanceXAF || 0)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[#645582] dark:text-[#A99BC8]">Active Equity</div>
+                <div className="font-mono font-bold text-emerald-500 tabular-nums mt-0.5">
+                  {formatXAF(liveEquityXAF)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[#645582] dark:text-[#A99BC8]">Ledger Entries</div>
+                <div className="font-mono font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
+                  {walletTxs.length}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Your Trades & Time Windows */}
+          <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-violet-500" />
+                <h2 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                  {lang === 'FR' ? 'Vos Trades & Temps Restant' : 'Your Active Trades & Time Windows'}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenPortfolio}
+                className="text-xs font-semibold text-violet-500 hover:underline"
+              >
+                {lang === 'FR' ? 'Tout voir' : 'Full Portfolio'} ({trades.length + predictionVotes.length})
+              </button>
+            </div>
+
+            {trades.length === 0 && predictionVotes.length === 0 ? (
+              <p className="text-xs text-[#645582] dark:text-[#A99BC8]">
+                {lang === 'FR'
+                  ? 'Aucun trade actif pour le moment. Explorez le marché pour acheter des parts ou voter.'
+                  : 'No active trades yet. Back a creator Raise or vote on a cultural pool to start tracking timelines.'}
+              </p>
+            ) : (
+              <div className="divide-y divide-[#E4DFF2] dark:divide-[#2A174A]">
+                {trades.slice(0, 5).map((tr) => {
+                  const live = creatorMap.get(tr.creatorId);
+                  const liveVal = tr.sharesHeld * (live?.sharePriceXAF || tr.entryPriceXAF);
+                  return (
+                    <div
+                      key={tr.id}
+                      onClick={() => live && onSelectCreator(live)}
+                      className={`py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-3 text-xs ${
+                        live ? 'cursor-pointer hover:opacity-80' : ''
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="font-bold text-[#11081F] dark:text-[#F8F7FC] truncate">
+                          {tr.side || 'BUY'} · {tr.creatorName}
+                        </div>
+                        <div className="text-[11px] text-[#645582] dark:text-[#A99BC8] flex items-center gap-2 mt-0.5 tabular-nums">
+                          <span>{tr.sharesHeld} shares</span>
+                          <span>·</span>
+                          <span className="inline-flex items-center gap-1 text-violet-500 font-semibold">
+                            <Clock className="w-3 h-3" />
+                            {tr.closesAt ? formatTimeRemaining(tr.closesAt) : 'Active'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 font-mono font-bold tabular-nums">
+                        {formatXAF(liveVal)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* CREATOR STUDIO MODE (GATED BY CREATOR PROFILE CLAIMING) */
+        <div className="space-y-5">
+          {user.isVerifiedCreator ? (
+            <>
+              {/* Verified Creator Studio Telemetry */}
+              <div className="bg-white dark:bg-[#180D2B] border border-violet-500/40 rounded-3xl p-5 sm:p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-violet-500" />
+                    <h2 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                      Verified Creator Studio
+                    </h2>
+                  </div>
+                  <span className="text-xs font-semibold text-emerald-500">
+                    {myCreatorListing?.escrowStatus || 'VERIFIED & CLAIMED'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
+                    <div className="text-[11px] text-[#645582] dark:text-[#A99BC8]">{t.raised}</div>
+                    <div className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
+                      {formatXAF(myCreatorListing?.totalRaisedXAF ?? user.totalRaisedXAF ?? 0)}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
+                    <div className="text-[11px] text-[#645582] dark:text-[#A99BC8]">{t.sharePrice}</div>
+                    <div className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
+                      {formatXAF(myCreatorListing?.sharePriceXAF ?? user.currentValuationXAF ?? 0)}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
+                    <div className="text-[11px] text-[#645582] dark:text-[#A99BC8]">{t.sharesLeft}</div>
+                    <div className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
+                      {myCreatorListing?.sharesRemaining ?? myCreatorListing?.totalShares ?? 0}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
+                    <div className="text-[11px] text-[#645582] dark:text-[#A99BC8]">{t.investors}</div>
+                    <div className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
+                      {myCreatorListing?.investorsCount ?? 0}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  {myCreatorListing?.distributorSplitEmail && (
+                    <div className="text-xs text-[#645582] dark:text-[#A99BC8]">
+                      Clearinghouse Split:{' '}
+                      <span className="font-mono font-semibold text-violet-500">
+                        {myCreatorListing.distributorSplitEmail}
+                      </span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => openClaimWizard()}
+                    className="px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
+                  >
+                    Launch New AI-Underwritten Raise
+                  </button>
+                </div>
+              </div>
+
+              {/* Brand & Agency Campaign Applications (Unlocked for Claimed Creators) */}
+              <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 sm:p-6 space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-violet-500" />
+                    <h2 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                      Open Brand & Agency Campaigns
+                    </h2>
+                  </div>
+                  <span className="text-xs text-[#645582] dark:text-[#A99BC8] tabular-nums">
+                    {brandCampaigns.filter((b) => b.status === 'OPEN').length} open
+                  </span>
+                </div>
+
+                {brandCampaigns.length === 0 ? (
+                  <p className="text-xs text-[#645582] dark:text-[#A99BC8]">
+                    No open brand or agency campaigns at the moment.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {brandCampaigns.map((camp) => {
+                      const alreadyApplied = myBrandApplications.find((a) => a.campaignId === camp.id);
+                      return (
+                        <div
+                          key={camp.id}
+                          className="p-4 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <span className="font-bold text-violet-500">
+                              {camp.brandName}
+                              {camp.agencyName ? ` · via ${camp.agencyName}` : ''}
+                            </span>
+                            <span className="font-mono font-bold text-emerald-500 tabular-nums">
+                              {formatXAF(camp.budgetXAF)}
+                            </span>
+                          </div>
+                          <div className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                            {lang === 'FR' ? camp.titleFr : camp.titleEn}
+                          </div>
+                          {camp.deliverable && (
+                            <p className="text-xs text-[#645582] dark:text-[#A99BC8]">{camp.deliverable}</p>
+                          )}
+                          <div className="pt-1">
+                            {alreadyApplied ? (
+                              <span className="text-xs font-semibold text-violet-500 capitalize">
+                                Pitch Status: {alreadyApplied.status} ({formatXAF(alreadyApplied.proposedFeeXAF)})
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={camp.status !== 'OPEN'}
+                                onClick={() => {
+                                  setApplyingCampaign(camp);
+                                  setBrandFeeXAF(Math.round(camp.budgetXAF * 0.4));
+                                  setBrandAppError(null);
+                                }}
+                                className="px-5 py-2 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-xs font-semibold"
+                              >
+                                Apply to Campaign
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            /* CREATOR CLAIM GATE: Must claim & verify profile before raising or applying to brands */
+            <div className="space-y-4">
+              {latestApp && (
+                <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                      {latestApp.claimCreatorId ? 'Profile Claim' : 'Creator Verification'} · {latestApp.stageName}
+                    </span>
+                    <span
+                      className={`text-xs font-bold capitalize ${
+                        latestApp.status === 'approved'
+                          ? 'text-emerald-500'
+                          : latestApp.status === 'rejected'
+                          ? 'text-red-500'
+                          : 'text-violet-500'
+                      }`}
+                    >
+                      {latestApp.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#645582] dark:text-[#A99BC8]">
+                    {latestApp.status === 'pending'
+                      ? 'Your Bio-Code ownership check, KYC, and Underwriting Audit are under review.'
+                      : latestApp.adminNotes || 'Reviewed by Crippo Exchange Committee.'}
+                  </p>
+                </div>
+              )}
+
+              <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 sm:p-6 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <h2 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                      {lang === 'FR' ? 'Réclamez votre profil créateur' : 'Claim & Verify Your Creator Profile'}
+                    </h2>
+                    <p className="text-xs text-[#645582] dark:text-[#A99BC8] leading-relaxed">
+                      {lang === 'FR'
+                        ? 'Seuls les créateurs ayant réclamé et vérifié leur profil (Code Bio + CNI/Passeport + MoMo) peuvent lancer une levée ou postuler aux campagnes marques & agences.'
+                        : 'Users cannot launch Raises or apply to Brand & Agency campaigns without first claiming and verifying their Creator Profile (Bio-Code + KYC + MoMo match).'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openClaimWizard()}
+                    className="px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shrink-0"
+                  >
+                    {t.becomeCreator}
+                  </button>
+                </div>
+
+                {unclaimedCreators.length > 0 && (
+                  <div className="pt-3 border-t border-[#E4DFF2] dark:border-[#2A174A] space-y-2.5">
+                    <div className="text-xs font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                      Pre-Indexed Unclaimed Directory Profiles
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {unclaimedCreators.map((uc) => (
+                        <div
+                          key={uc.id}
+                          className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-between gap-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-[#11081F] dark:text-[#F8F7FC] truncate">
+                              {uc.name}
+                            </div>
+                            <div className="text-[11px] text-[#645582] dark:text-[#A99BC8] truncate">
+                              {uc.handle} · {uc.city || 'Cameroon'}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openClaimWizard(uc)}
+                            className="px-3.5 py-1.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-semibold shrink-0"
+                          >
+                            Claim
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Admin Quick Entry */}
       {user.admin && (
@@ -360,13 +884,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           className="w-full bg-[#11081F] hover:bg-[#1c1033] border border-[#2A174A] text-white rounded-3xl p-5 flex items-center justify-between gap-4 transition-colors text-left"
         >
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-violet-600 text-white flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-full bg-violet-600 text-white flex items-center justify-center shrink-0">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
               <div className="text-sm font-bold">{t.adminConsole}</div>
               <div className="text-xs text-[#A99BC8]">
-                Approve Raises, publish Cultural Catalysts, manage Escrow tranches & Prediction Contracts
+                AI Pulse Agents, Bio-Code Claim Verification, Brand Deals & Clearinghouse Escrow
               </div>
             </div>
           </div>
@@ -374,134 +898,135 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </button>
       )}
 
-      {/* VERIFIED CREATOR STUDIO */}
-      {user.isVerifiedCreator && (
-        <div className="bg-white dark:bg-[#180D2B] border border-violet-500/40 rounded-3xl p-5 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Award className="w-5 h-5 text-violet-500" />
-              <h2 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                Verified Creator Studio
-              </h2>
-            </div>
-            <span className="px-2.5 py-1 rounded-xl bg-emerald-500/15 text-emerald-500 text-[11px] font-semibold">
-              {myCreatorListing?.escrowStatus || 'OPEN'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
-              <div className="text-[11px] text-[#645582] dark:text-[#A99BC8]">{t.raised}</div>
-              <div className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
-                {formatXAF(myCreatorListing?.totalRaisedXAF ?? user.totalRaisedXAF ?? 0)}
-              </div>
-            </div>
-            <div className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
-              <div className="text-[11px] text-[#645582] dark:text-[#A99BC8]">{t.sharePrice}</div>
-              <div className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
-                {formatXAF(myCreatorListing?.sharePriceXAF ?? user.currentValuationXAF ?? 0)}
-              </div>
-            </div>
-            <div className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
-              <div className="text-[11px] text-[#645582] dark:text-[#A99BC8]">{t.sharesLeft}</div>
-              <div className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
-                {myCreatorListing?.sharesRemaining ?? myCreatorListing?.totalShares ?? 0}
-              </div>
-            </div>
-            <div className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A]">
-              <div className="text-[11px] text-[#645582] dark:text-[#A99BC8]">{t.investors}</div>
-              <div className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums mt-0.5">
-                {myCreatorListing?.investorsCount ?? 0}
-              </div>
-            </div>
-          </div>
-
-          {myCreatorListing?.distributorSplitEmail && (
-            <div className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className="text-[#645582] dark:text-[#A99BC8]">Clearinghouse Split Address:</span>
-              <span className="font-mono font-semibold text-violet-500">
-                {myCreatorListing.distributorSplitEmail}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Application Status Banner */}
-      {!user.isVerifiedCreator && latestApp && (
-        <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
-              Creator Raise Application · {latestApp.stageName}
-            </span>
-            <span
-              className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold capitalize ${
-                latestApp.status === 'approved'
-                  ? 'bg-emerald-500/15 text-emerald-500'
-                  : latestApp.status === 'rejected'
-                  ? 'bg-red-500/15 text-red-500'
-                  : 'bg-violet-500/15 text-violet-400'
-              }`}
-            >
-              {latestApp.status}
-            </span>
-          </div>
-          <p className="text-xs text-[#645582] dark:text-[#A99BC8]">
-            {latestApp.status === 'pending'
-              ? 'Your Social Bio-Code, KYC, and Underwriting Audit are under exchange committee review.'
-              : latestApp.adminNotes || 'Reviewed by Crippo Exchange Committee.'}
-          </p>
-        </div>
-      )}
-
-      {/* Become a Creator Card */}
-      {!user.isVerifiedCreator && (
-        <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-11 h-11 rounded-2xl bg-violet-600 text-white flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">Creator Launchpad</h3>
-              <p className="text-xs text-[#645582] dark:text-[#A99BC8] truncate">
-                Social Bio-Code verification, AI Underwriting & XAF Raise listing
-              </p>
-            </div>
-          </div>
+      {/* App Preferences (Theme, Language, Replay Onboarding) */}
+      <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[#645582] dark:text-[#A99BC8]">
+          {lang === 'FR' ? 'Préférences & Apparence' : 'App Preferences'}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <button
             type="button"
-            onClick={() => {
-              setWizardError(null);
-              setWizardStep(1);
-              setAuditResult(null);
-              setWizardOpen(true);
-            }}
-            className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shrink-0 transition-colors"
+            onClick={onToggleTheme}
+            className="flex items-center justify-between px-4 py-3 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold hover:border-violet-500"
           >
-            {t.becomeCreator}
+            <span>{lang === 'FR' ? 'Thème' : 'Theme'}</span>
+            <span className="inline-flex items-center gap-1.5 text-violet-500">
+              {isDark ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+              {isDark ? 'Dark Purple' : 'Light'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggleLang}
+            className="flex items-center justify-between px-4 py-3 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold hover:border-violet-500"
+          >
+            <span>{lang === 'FR' ? 'Langue' : 'Language'}</span>
+            <span className="inline-flex items-center gap-1.5 text-violet-500">
+              <Globe className="w-3.5 h-3.5" />
+              {lang === 'FR' ? 'Français (FR)' : 'English (EN)'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onReplayOnboarding}
+            className="flex items-center justify-between px-4 py-3 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold hover:border-violet-500"
+          >
+            <span>{lang === 'FR' ? 'Revoir le guide' : 'Replay Intro Guide'}</span>
+            <Sparkles className="w-3.5 h-3.5 text-violet-500" />
           </button>
         </div>
-      )}
+      </div>
 
       {/* Sign Out */}
       <button
         type="button"
         onClick={() => signOut(auth)}
-        className="w-full py-3.5 px-5 rounded-2xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] hover:border-red-500/50 text-[#11081F] dark:text-[#F8F7FC] text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+        className="w-full py-3.5 px-5 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] hover:border-red-500/60 text-[#11081F] dark:text-[#F8F7FC] text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
       >
         <LogOut className="w-4 h-4" />
         <span>{lang === 'FR' ? 'Déconnexion' : 'Sign out'}</span>
       </button>
 
-      {/* 3-Step Creator Onboarding & Pre-Listing Underwriting Modal */}
+      {/* Brand Campaign Pitch Modal */}
+      {applyingCampaign && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 p-0 sm:p-4">
+          <form
+            onSubmit={handleSubmitBrandPitch}
+            className="w-full max-w-md bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-t-3xl sm:rounded-3xl p-6 space-y-4 relative"
+          >
+            <button
+              type="button"
+              onClick={() => setApplyingCampaign(null)}
+              aria-label="Close campaign pitch"
+              className="absolute top-5 right-5 w-9 h-9 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="pr-10">
+              <div className="text-xs font-bold text-violet-500">
+                {applyingCampaign.brandName}
+                {applyingCampaign.agencyName ? ` · via ${applyingCampaign.agencyName}` : ''}
+              </div>
+              <h3 className="text-lg font-bold text-[#11081F] dark:text-[#F8F7FC] mt-0.5">
+                {lang === 'FR' ? applyingCampaign.titleFr : applyingCampaign.titleEn}
+              </h3>
+            </div>
+
+            {brandAppError && (
+              <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-xs text-red-500">
+                {brandAppError}
+              </div>
+            )}
+
+            <div>
+              <label className="text-[11px] font-semibold text-[#645582] dark:text-[#A99BC8]">
+                Proposed Creator Fee (XAF)
+              </label>
+              <input
+                type="number"
+                min={50000}
+                step={25000}
+                required
+                value={brandFeeXAF}
+                onChange={(e) => setBrandFeeXAF(Number(e.target.value))}
+                className="w-full mt-1 px-4 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full tabular-nums"
+              />
+            </div>
+
+            <textarea
+              required
+              minLength={10}
+              rows={3}
+              value={brandPitch}
+              onChange={(e) => setBrandPitch(e.target.value)}
+              placeholder="Outline your integration concept, audience reach in Cameroon, and delivery timeline..."
+              className="w-full px-4 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl resize-none"
+            />
+
+            <button
+              type="submit"
+              disabled={submittingBrandApp}
+              className="w-full py-3.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold inline-flex items-center justify-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              <span>{submittingBrandApp ? 'Sending Pitch...' : 'Submit Campaign Application'}</span>
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* 3-Step Creator Claim & Pre-Listing Underwriting Modal */}
       {wizardOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 p-0 sm:p-4">
           <div className="w-full max-w-xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-t-3xl sm:rounded-3xl p-6 relative max-h-[92vh] overflow-y-auto space-y-5">
             <button
               type="button"
               onClick={() => setWizardOpen(false)}
               aria-label="Close onboarding wizard"
-              className="absolute top-5 right-5 w-9 h-9 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#645582] dark:text-[#A99BC8]"
+              className="absolute top-5 right-5 w-9 h-9 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#645582] dark:text-[#A99BC8]"
             >
               <X className="w-4 h-4" />
             </button>
@@ -509,7 +1034,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <div className="pr-10">
               <span className="text-xs font-semibold text-violet-500">Step {wizardStep} of 3</span>
               <h2 className="text-xl font-bold text-[#11081F] dark:text-[#F8F7FC] mt-0.5">
-                Creator Project Raise Application
+                {claimCreatorId
+                  ? `Claim Directory Profile: ${stageName}`
+                  : 'Creator Profile Verification & Raise Application'}
               </h2>
             </div>
 
@@ -520,9 +1047,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     1. Social Bio-Code Ownership Proof
                   </div>
                   <p className="text-xs text-[#645582] dark:text-[#A99BC8]">
-                    Paste this unique code into your TikTok, YouTube, or Facebook bio until listing approval to prove channel ownership:
+                    Paste this unique code into your TikTok, YouTube, or Facebook bio until verification is approved:
                   </p>
-                  <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-white dark:bg-[#180D2B] border border-violet-500/40">
+                  <div className="flex items-center justify-between gap-2 p-3 rounded-2xl bg-white dark:bg-[#180D2B] border border-violet-500/40">
                     <span className="font-mono text-sm font-bold text-violet-500">{bioCode}</span>
                     <button
                       type="button"
@@ -531,7 +1058,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         setCopiedCode(true);
                         setTimeout(() => setCopiedCode(false), 1800);
                       }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-violet-600/15 text-violet-500 text-xs font-semibold"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-violet-600/15 text-violet-500 text-xs font-semibold"
                     >
                       <Copy className="w-3.5 h-3.5" />
                       {copiedCode ? 'Copied' : 'Copy'}
@@ -544,14 +1071,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     2. Two-Tranche Clearinghouse Escrow Protection
                   </div>
                   <p className="text-xs text-[#645582] dark:text-[#A99BC8]">
-                    Tranche 1 (50%) releases at Raise Close for production; Tranche 2 (50%) unlocks upon verified master submission & distributor royalty split routing.
+                    Tranche 1 (50%) releases at Raise Close; Tranche 2 (50%) unlocks upon verified master submission & distributor royalty split routing.
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setWizardStep(2)}
-                  className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold"
+                  className="w-full py-3.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold"
                 >
                   Continue to Identity & KYC
                 </button>
@@ -567,7 +1094,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     value={stageName}
                     onChange={(e) => setStageName(e.target.value)}
                     placeholder="Stage / Project Name *"
-                    className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC]"
+                    className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
                   />
                   <input
                     type="text"
@@ -575,7 +1102,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     value={handle}
                     onChange={(e) => setHandle(e.target.value)}
                     placeholder="@handle *"
-                    className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC]"
+                    className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
                   />
                 </div>
 
@@ -583,7 +1110,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="px-3.5 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC]"
+                    className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
                   >
                     <option value="Music & Albums">Music & Albums</option>
                     <option value="TikTok Series">TikTok Series</option>
@@ -595,7 +1122,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     placeholder="City (Buea, Douala, Yaoundé)"
-                    className="px-3.5 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC]"
+                    className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
                   />
                 </div>
 
@@ -603,7 +1130,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   <select
                     value={kycDocType}
                     onChange={(e) => setKycDocType(e.target.value as 'CNI' | 'Passport' | 'RCCM')}
-                    className="px-3.5 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC]"
+                    className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
                   >
                     <option value="CNI">National ID (CNI)</option>
                     <option value="Passport">Passport</option>
@@ -614,7 +1141,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     value={momoNumber}
                     onChange={(e) => setMomoNumber(e.target.value)}
                     placeholder="Verified MoMo (+237 6...)"
-                    className="px-3.5 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC]"
+                    className="px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
                   />
                 </div>
 
@@ -623,17 +1150,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   value={tiktokUrl}
                   onChange={(e) => setTiktokUrl(e.target.value)}
                   placeholder="TikTok or YouTube profile URL"
-                  className="w-full px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC]"
+                  className="w-full px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
                 />
                 <input
                   type="url"
                   value={facebookUrl}
                   onChange={(e) => setFacebookUrl(e.target.value)}
                   placeholder="Facebook page URL"
-                  className="w-full px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC]"
+                  className="w-full px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
                 />
 
-                <label className="flex items-center justify-between p-3.5 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-dashed border-[#E4DFF2] dark:border-[#2A174A] cursor-pointer hover:border-violet-500">
+                <label className="flex items-center justify-between p-4 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-dashed border-[#E4DFF2] dark:border-[#2A174A] cursor-pointer hover:border-violet-500">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Upload className="w-4 h-4 text-violet-500 shrink-0" />
                     <span className="text-xs font-medium text-[#11081F] dark:text-[#F8F7FC] truncate">
@@ -657,7 +1184,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setWizardStep(1)}
-                    className="px-5 py-3 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC]"
+                    className="px-5 py-3 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC]"
                   >
                     Back
                   </button>
@@ -665,7 +1192,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     type="button"
                     disabled={stageName.trim().length < 2 || handle.trim().length < 2}
                     onClick={() => setWizardStep(3)}
-                    className="flex-1 py-3 rounded-xl bg-violet-600 disabled:opacity-40 text-white text-sm font-semibold"
+                    className="flex-1 py-3 rounded-full bg-violet-600 disabled:opacity-40 text-white text-sm font-semibold"
                   >
                     Next: Budget & AI Underwriting
                   </button>
@@ -676,7 +1203,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             {wizardStep === 3 && (
               <form onSubmit={handleSubmitApplication} className="space-y-3.5">
                 {wizardError && (
-                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-500">
+                  <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-xs text-red-500">
                     {wizardError}
                   </div>
                 )}
@@ -690,7 +1217,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       step={50000}
                       value={netBudgetXAF}
                       onChange={(e) => setNetBudgetXAF(Number(e.target.value))}
-                      className="w-full mt-1 px-3 py-2 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC] tabular-nums"
+                      className="w-full mt-1 px-3 py-2 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC] tabular-nums"
                     />
                   </div>
                   <div>
@@ -701,7 +1228,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       step={50}
                       value={totalShares}
                       onChange={(e) => setTotalShares(Number(e.target.value))}
-                      className="w-full mt-1 px-3 py-2 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC] tabular-nums"
+                      className="w-full mt-1 px-3 py-2 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC] tabular-nums"
                     />
                   </div>
                   <div>
@@ -712,7 +1239,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       max={75}
                       value={revSharePct}
                       onChange={(e) => setRevSharePct(Number(e.target.value))}
-                      className="w-full mt-1 px-3 py-2 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC] tabular-nums"
+                      className="w-full mt-1 px-3 py-2 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC] tabular-nums"
                     />
                   </div>
                 </div>
@@ -725,7 +1252,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       min={0}
                       value={youtube30dViews}
                       onChange={(e) => setYoutube30dViews(Number(e.target.value))}
-                      className="w-full mt-1 px-2.5 py-1.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-lg tabular-nums"
+                      className="w-full mt-1 px-3 py-1.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full tabular-nums"
                     />
                   </div>
                   <div>
@@ -735,7 +1262,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       min={0}
                       value={spotifyMonthlyListeners}
                       onChange={(e) => setSpotifyMonthlyListeners(Number(e.target.value))}
-                      className="w-full mt-1 px-2.5 py-1.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-lg tabular-nums"
+                      className="w-full mt-1 px-3 py-1.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full tabular-nums"
                     />
                   </div>
                   <div>
@@ -745,7 +1272,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       min={0}
                       value={tiktokVelocity}
                       onChange={(e) => setTiktokVelocity(Number(e.target.value))}
-                      className="w-full mt-1 px-2.5 py-1.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-lg tabular-nums"
+                      className="w-full mt-1 px-3 py-1.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full tabular-nums"
                     />
                   </div>
                   <div>
@@ -756,7 +1283,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       min={0}
                       value={engagementRate}
                       onChange={(e) => setEngagementRate(Number(e.target.value))}
-                      className="w-full mt-1 px-2.5 py-1.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-lg tabular-nums"
+                      className="w-full mt-1 px-3 py-1.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full tabular-nums"
                     />
                   </div>
                 </div>
@@ -765,7 +1292,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   type="button"
                   disabled={auditing}
                   onClick={handleRunAudit}
-                  className="w-full py-2.5 rounded-xl bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/40 text-violet-500 text-xs font-semibold"
+                  className="w-full py-2.5 rounded-full bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/40 text-violet-500 text-xs font-semibold"
                 >
                   {auditing ? 'Running AI Underwriting Audit...' : 'Run Pre-Listing AI Underwriting Check'}
                 </button>
@@ -797,23 +1324,27 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   value={pitch}
                   onChange={(e) => setPitch(e.target.value)}
                   placeholder="Describe your project deliverables, release timeline, and royalty sources *"
-                  className="w-full px-4 py-2.5 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC] resize-none"
+                  className="w-full px-4 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl text-[#11081F] dark:text-[#F8F7FC] resize-none"
                 />
 
                 <div className="flex gap-3 pt-1">
                   <button
                     type="button"
                     onClick={() => setWizardStep(2)}
-                    className="px-5 py-3 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC]"
+                    className="px-5 py-3 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC]"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
                     disabled={wizardSubmitting || mediaUploading}
-                    className="flex-1 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-semibold"
+                    className="flex-1 py-3 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-semibold"
                   >
-                    {wizardSubmitting ? 'Submitting...' : 'Submit for Listing Review'}
+                    {wizardSubmitting
+                      ? 'Submitting...'
+                      : claimCreatorId
+                      ? 'Submit Profile Claim'
+                      : 'Submit for Verification'}
                   </button>
                 </div>
               </form>

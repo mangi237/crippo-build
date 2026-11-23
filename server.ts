@@ -4,6 +4,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { getAggregatorConfigStatus, runUnifiedSocialSync } from './server/socialAggregator.ts';
 import { runPreListingUnderwriting } from './server/underwriting.ts';
+import { runBioCodeVerificationAgent, runMarketPulseAgent } from './server/agents.ts';
 
 dotenv.config();
 
@@ -18,9 +19,10 @@ async function startServer() {
     });
   });
 
-  app.post('/api/v1/aggregator/sync', async (_req, res) => {
+  app.post('/api/v1/aggregator/sync', async (req, res) => {
     try {
-      const result = await runUnifiedSocialSync();
+      const blogUrls = Array.isArray(req.body?.blogUrls) ? req.body.blogUrls : undefined;
+      const result = await runUnifiedSocialSync(blogUrls);
       res.json({
         success: true,
         data: result,
@@ -49,6 +51,42 @@ async function startServer() {
         error: {
           code: 'UNDERWRITING_ERROR',
           message: err instanceof Error ? err.message : 'Underwriting evaluation failed.',
+        },
+      });
+    }
+  });
+
+  app.post('/api/v1/agents/run-pulse', async (req, res) => {
+    try {
+      const result = await runMarketPulseAgent(req.body || {});
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'AGENT_PULSE_ERROR',
+          message: err instanceof Error ? err.message : 'Market pulse agent execution failed.',
+        },
+      });
+    }
+  });
+
+  app.post('/api/v1/agents/verify-claim', async (req, res) => {
+    try {
+      const result = await runBioCodeVerificationAgent(req.body || {});
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'AGENT_VERIFY_ERROR',
+          message: err instanceof Error ? err.message : 'Bio-code verification agent failed.',
         },
       });
     }

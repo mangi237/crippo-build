@@ -15,7 +15,10 @@ import {
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, handleFirestoreError, OperationType, storage } from './firebase';
 import type {
+  AgentPulseResult,
   AggregatorConfigStatus,
+  BioVerificationAgentResult,
+  BrandApplication,
   BrandCampaign,
   Creator,
   CreatorApplication,
@@ -606,6 +609,7 @@ export function subscribeMyApplications(uid: string, onData: (apps: CreatorAppli
 
 export async function submitCreatorApplication(params: {
   uid: string;
+  claimCreatorId?: string;
   stageName: string;
   handle: string;
   category: string;
@@ -628,6 +632,7 @@ export async function submitCreatorApplication(params: {
   const appDoc = stripUndefined<CreatorApplication>({
     id,
     uid: params.uid,
+    claimCreatorId: params.claimCreatorId,
     stageName: params.stageName.trim().slice(0, FIELD_LIMITS.NAME_MAX),
     handle: params.handle.trim().slice(0, FIELD_LIMITS.HANDLE_MAX),
     category: params.category.trim().slice(0, 60),
@@ -654,6 +659,93 @@ export async function submitCreatorApplication(params: {
     return appDoc;
   } catch (err) {
     handleFirestoreError(err, OperationType.CREATE, `creator_applications/${id}`);
+  }
+}
+
+export function subscribeMyBrandApplications(uid: string, onData: (apps: BrandApplication[]) => void): Unsubscribe {
+  const q = query(collection(db, 'brand_applications'), where('uid', '==', uid));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const items = snap.docs
+        .map((d) => d.data() as BrandApplication)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      onData(items);
+    },
+    (err) => handleFirestoreError(err, OperationType.LIST, 'brand_applications')
+  );
+}
+
+export function subscribeAllBrandApplications(onData: (apps: BrandApplication[]) => void): Unsubscribe {
+  const q = query(collection(db, 'brand_applications'), orderBy('createdAt', 'desc'));
+  return onSnapshot(
+    q,
+    (snap) => onData(snap.docs.map((d) => d.data() as BrandApplication)),
+    (err) => handleFirestoreError(err, OperationType.LIST, 'brand_applications')
+  );
+}
+
+export async function submitBrandApplication(params: {
+  campaign: BrandCampaign;
+  uid: string;
+  creatorId: string;
+  creatorName: string;
+  pitch: string;
+  proposedFeeXAF: number;
+}): Promise<BrandApplication> {
+  const id = makeDocId('bapp');
+  const nowIso = new Date().toISOString();
+  const docData = stripUndefined<BrandApplication>({
+    id,
+    campaignId: params.campaign.id,
+    campaignTitle: params.campaign.titleEn,
+    brandName: params.campaign.brandName,
+    creatorId: params.creatorId,
+    creatorName: params.creatorName,
+    uid: params.uid,
+    pitch: params.pitch.trim().slice(0, FIELD_LIMITS.PITCH_MAX),
+    proposedFeeXAF: Math.max(50000, Math.round(params.proposedFeeXAF)),
+    status: 'pending',
+    createdAt: nowIso,
+  });
+
+  try {
+    await setDoc(doc(db, 'brand_applications', id), docData);
+    return docData;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.CREATE, `brand_applications/${id}`);
+  }
+}
+
+export async function adminReviewBrandApplication(
+  application: BrandApplication,
+  decision: 'accepted' | 'rejected'
+): Promise<void> {
+  const nowIso = new Date().toISOString();
+  const notifId = makeDocId('ntf');
+  const batch = writeBatch(db);
+  try {
+    batch.update(doc(db, 'brand_applications', application.id), { status: decision });
+    if (decision === 'accepted') {
+      batch.update(doc(db, 'brand_campaigns', application.campaignId), { status: 'MATCHED' });
+      batch.set(
+        doc(db, 'notifications', notifId),
+        stripUndefined<NotificationItem>({
+          id: notifId,
+          uid: application.uid,
+          titleEn: `Brand Deal Accepted: ${application.brandName}`,
+          titleFr: `Contrat Marque Accepté : ${application.brandName}`,
+          bodyEn: `${application.creatorName} matched with "${application.campaignTitle}" (${application.proposedFeeXAF.toLocaleString()} XAF).`,
+          bodyFr: `${application.creatorName} sélectionné pour « ${application.campaignTitle} » (${application.proposedFeeXAF.toLocaleString()} XAF).`,
+          kind: 'ESCROW',
+          creatorId: application.creatorId,
+          createdAt: nowIso,
+        })
+      );
+    }
+    await batch.commit();
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, `brand_applications/${application.id}`);
   }
 }
 
@@ -747,68 +839,87 @@ export async function adminReviewApplication(params: {
     });
 
     if (params.decision === 'approved') {
-      const creatorId = makeDocId('crt');
-      const totalShares = Math.max(100, params.app.totalShares || 1000);
-      const netBudget = params.app.netBudgetXAF || 1000000;
-      const pricing = calculateInitialSharePrice(netBudget, totalShares);
-      const basePrice = Math.max(100, params.initialSharePriceXAF || pricing.initialSharePriceXAF);
+      if (params.app.claimCreatorId) {
+        const claimedId = params.app.claimCreatorId;
+        batch.update(doc(db, 'creators', claimedId), {
+          ownerUid: params.app.uid,
+          claimedByUid: params.app.uid,
+          claimStatus: 'CLAIMED',
+          isVerified: true,
+          updatedAt: nowIso,
+        });
 
-      const validCategories = ['Music & Albums', 'TikTok Series', 'Movies & Docs', 'Podcasts', 'Brand Campaigns', 'Music', 'Entertainment', 'Comedy', 'Film', 'Tech', 'Lifestyle'];
-      const category = validCategories.includes(params.app.category)
-        ? (params.app.category as Creator['category'])
-        : 'Music & Albums';
+        batch.update(doc(db, 'users', params.app.uid), {
+          isVerifiedCreator: true,
+          creatorId: claimedId,
+          updatedAt: nowIso,
+        });
+      } else {
+        const creatorId = makeDocId('crt');
+        const totalShares = Math.max(100, params.app.totalShares || 1000);
+        const netBudget = params.app.netBudgetXAF || 1000000;
+        const pricing = calculateInitialSharePrice(netBudget, totalShares);
+        const basePrice = Math.max(100, params.initialSharePriceXAF || pricing.initialSharePriceXAF);
 
-      const creatorDoc = stripUndefined<Creator>({
-        id: creatorId,
-        ownerUid: params.app.uid,
-        name: params.app.stageName,
-        handle: params.app.handle.startsWith('@') ? params.app.handle : `@${params.app.handle}`,
-        raiseTitle: `${params.app.stageName} Revenue Raise`,
-        raiseTitleFr: `Levée de Revenus ${params.app.stageName}`,
-        summary: params.app.pitch.slice(0, 480),
-        category,
-        city: params.app.city || 'Douala',
-        platform: params.app.tiktokUrl && params.app.facebookUrl ? 'Multi-Platform' : params.app.tiktokUrl ? 'TikTok' : 'Facebook',
-        status: 'OPEN',
-        escrowStatus: 'ESCROW_HOLDING',
-        distributorSplitEmail: `raise-${creatorId}@clearing.crippo.cm`,
-        followersCount: 0,
-        engagementRate: 5.5,
-        viewVelocity: 10000,
-        crippoScore: 84,
-        underwritingScore: 86,
-        netBudgetXAF: netBudget,
-        grossTargetXAF: pricing.grossTargetXAF,
-        totalShares,
-        sharesRemaining: totalShares,
-        investorsCount: 0,
-        tradingVolumeXAF: 0,
-        baseSharePriceXAF: basePrice,
-        sharePriceXAF: basePrice,
-        priceChangePct: 0,
-        sparkline: [basePrice, basePrice],
-        priceHistory: [{ time: nowIso, priceXAF: basePrice, catalystTitle: 'Initial Underwritten Listing', deltaPct: 0 }],
-        totalRaisedXAF: 0,
-        targetRaiseXAF: params.app.targetRaiseXAF || pricing.grossTargetXAF,
-        revSharePct: params.app.revSharePct || 25,
-        roiDurationMonths: 12,
-        closesAt: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString(),
-        isVerified: true,
-        milestonesCompleted: 0,
-        createdAt: nowIso,
-        updatedAt: nowIso,
-      });
+        const validCategories = ['Music & Albums', 'TikTok Series', 'Movies & Docs', 'Podcasts', 'Brand Campaigns', 'Music', 'Entertainment', 'Comedy', 'Film', 'Tech', 'Lifestyle'];
+        const category = validCategories.includes(params.app.category)
+          ? (params.app.category as Creator['category'])
+          : 'Music & Albums';
 
-      batch.set(doc(db, 'creators', creatorId), creatorDoc);
+        const creatorDoc = stripUndefined<Creator>({
+          id: creatorId,
+          ownerUid: params.app.uid,
+          claimedByUid: params.app.uid,
+          claimStatus: 'CLAIMED',
+          name: params.app.stageName,
+          handle: params.app.handle.startsWith('@') ? params.app.handle : `@${params.app.handle}`,
+          raiseTitle: `${params.app.stageName} Revenue Raise`,
+          raiseTitleFr: `Levée de Revenus ${params.app.stageName}`,
+          summary: params.app.pitch.slice(0, 480),
+          category,
+          city: params.app.city || 'Douala',
+          platform: params.app.tiktokUrl && params.app.facebookUrl ? 'Multi-Platform' : params.app.tiktokUrl ? 'TikTok' : 'Facebook',
+          status: 'OPEN',
+          escrowStatus: 'ESCROW_HOLDING',
+          distributorSplitEmail: `raise-${creatorId}@clearing.crippo.cm`,
+          followersCount: 0,
+          engagementRate: 5.5,
+          viewVelocity: 10000,
+          crippoScore: 84,
+          underwritingScore: 86,
+          netBudgetXAF: netBudget,
+          grossTargetXAF: pricing.grossTargetXAF,
+          totalShares,
+          sharesRemaining: totalShares,
+          investorsCount: 0,
+          tradingVolumeXAF: 0,
+          baseSharePriceXAF: basePrice,
+          sharePriceXAF: basePrice,
+          priceChangePct: 0,
+          sparkline: [basePrice, basePrice],
+          priceHistory: [{ time: nowIso, priceXAF: basePrice, catalystTitle: 'Initial Underwritten Listing', deltaPct: 0 }],
+          totalRaisedXAF: 0,
+          targetRaiseXAF: params.app.targetRaiseXAF || pricing.grossTargetXAF,
+          revSharePct: params.app.revSharePct || 25,
+          roiDurationMonths: 12,
+          closesAt: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString(),
+          isVerified: true,
+          milestonesCompleted: 0,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
 
-      batch.update(doc(db, 'users', params.app.uid), {
-        isVerifiedCreator: true,
-        creatorId,
-        totalRaisedXAF: 0,
-        currentValuationXAF: basePrice * totalShares,
-        completedMilestones: 0,
-        updatedAt: nowIso,
-      });
+        batch.set(doc(db, 'creators', creatorId), creatorDoc);
+
+        batch.update(doc(db, 'users', params.app.uid), {
+          isVerifiedCreator: true,
+          creatorId,
+          totalRaisedXAF: 0,
+          currentValuationXAF: basePrice * totalShares,
+          completedMilestones: 0,
+          updatedAt: nowIso,
+        });
+      }
     }
 
     await batch.commit();
@@ -1077,6 +1188,7 @@ export async function adminAdvanceEscrowStage(
 
 export async function adminCreateBrandCampaign(params: {
   brandName: string;
+  agencyName?: string;
   titleEn: string;
   titleFr: string;
   category: string;
@@ -1090,6 +1202,7 @@ export async function adminCreateBrandCampaign(params: {
       stripUndefined<BrandCampaign>({
         id,
         brandName: params.brandName.trim().slice(0, 120),
+        agencyName: params.agencyName?.trim().slice(0, 120),
         titleEn: params.titleEn.trim().slice(0, 180),
         titleFr: params.titleFr.trim().slice(0, 180),
         category: params.category.trim().slice(0, 80),
@@ -1309,14 +1422,115 @@ export async function adminBootstrapExchangeCatalog(adminUid: string): Promise<v
       roiDurationMonths: 14,
       closesAt: closesInDays(18),
       isVerified: true,
+      claimStatus: 'CLAIMED',
+      claimedByUid: adminUid,
       milestonesCompleted: 1,
       createdAt: iso(360),
       updatedAt: iso(45),
     },
+    {
+      id: 'crt_mimie_directory',
+      ownerUid: adminUid,
+      name: 'Mimie',
+      handle: '@mimieofficial',
+      raiseTitle: 'Douala Acoustic Live Sessions (Directory Listing)',
+      raiseTitleFr: 'Sessions Live Douala (Profil Répertoire)',
+      summary: 'Pre-indexed Cameroon Afropop artist directory card. Official artist can verify bio-code to claim and open Raise rounds or Brand pitches.',
+      summaryFr: 'Profil artiste pré-indexé. L’artiste peut vérifier son code bio pour réclamer son profil et lancer une levée.',
+      category: 'Music & Albums',
+      city: 'Douala',
+      platform: 'Multi-Platform',
+      status: 'OPEN',
+      claimStatus: 'UNCLAIMED',
+      escrowStatus: 'ESCROW_HOLDING',
+      distributorSplitEmail: 'raise-crt_mimie_directory@clearing.crippo.cm',
+      followersCount: 1180000,
+      engagementRate: 7.1,
+      viewVelocity: 162000,
+      crippoScore: 90,
+      underwritingScore: 88,
+      projected12mRevenueXAF: 11200000,
+      netBudgetXAF: 3000000,
+      grossTargetXAF: 3150000,
+      totalShares: 1000,
+      sharesRemaining: 1000,
+      investorsCount: 41,
+      tradingVolumeXAF: 920000,
+      baseSharePriceXAF: 3150,
+      sharePriceXAF: 3340,
+      priceChangePct: 6.0,
+      sparkline: [3150, 3190, 3240, 3300, 3340],
+      priceHistory: [
+        { time: iso(240), priceXAF: 3150, catalystTitle: 'Directory Indexing P₀', deltaPct: 0 },
+        { time: iso(30), priceXAF: 3340, catalystTitle: 'Canal d’Or Nomination Momentum', deltaPct: 6.0 },
+      ],
+      totalRaisedXAF: 540000,
+      targetRaiseXAF: 3150000,
+      revSharePct: 20,
+      roiDurationMonths: 12,
+      closesAt: closesInDays(22),
+      isVerified: false,
+      milestonesCompleted: 0,
+      createdAt: iso(250),
+      updatedAt: iso(30),
+    },
+    {
+      id: 'crt_locko_directory',
+      ownerUid: adminUid,
+      name: 'Locko',
+      handle: '@lockoofficial',
+      raiseTitle: 'Yaoundé Symphony Live Visuals (Unclaimed Profile)',
+      raiseTitleFr: 'Visuels Symphonie Yaoundé (Profil À Réclamer)',
+      summary: 'Directory creator listing open for official verification and creator studio claiming.',
+      summaryFr: 'Profil créateur répertoire ouvert à la vérification officielle.',
+      category: 'Music & Albums',
+      city: 'Yaoundé',
+      platform: 'YouTube',
+      status: 'OPEN',
+      claimStatus: 'UNCLAIMED',
+      escrowStatus: 'ESCROW_HOLDING',
+      distributorSplitEmail: 'raise-crt_locko_directory@clearing.crippo.cm',
+      followersCount: 1550000,
+      engagementRate: 6.4,
+      viewVelocity: 195000,
+      crippoScore: 92,
+      underwritingScore: 90,
+      projected12mRevenueXAF: 15000000,
+      netBudgetXAF: 4500000,
+      grossTargetXAF: 4725000,
+      totalShares: 1050,
+      sharesRemaining: 1050,
+      investorsCount: 52,
+      tradingVolumeXAF: 1180000,
+      baseSharePriceXAF: 4500,
+      sharePriceXAF: 4680,
+      priceChangePct: 4.0,
+      sparkline: [4500, 4540, 4600, 4680],
+      priceHistory: [
+        { time: iso(200), priceXAF: 4500, catalystTitle: 'Directory Indexing P₀', deltaPct: 0 },
+        { time: iso(25), priceXAF: 4680, catalystTitle: 'Francophonie Airplay Spike', deltaPct: 4.0 },
+      ],
+      totalRaisedXAF: 680000,
+      targetRaiseXAF: 4725000,
+      revSharePct: 22,
+      roiDurationMonths: 12,
+      closesAt: closesInDays(24),
+      isVerified: false,
+      milestonesCompleted: 0,
+      createdAt: iso(210),
+      updatedAt: iso(25),
+    },
   ];
 
   for (const c of starterRaises) {
-    batch.set(doc(db, 'creators', c.id), stripUndefined(c));
+    batch.set(
+      doc(db, 'creators', c.id),
+      stripUndefined({
+        ...c,
+        claimStatus: c.claimStatus || 'CLAIMED',
+        claimedByUid: c.claimStatus === 'UNCLAIMED' ? undefined : c.claimedByUid || adminUid,
+      })
+    );
   }
 
   const starterPredictions: PredictionMarket[] = [
@@ -1440,6 +1654,7 @@ export async function adminBootstrapExchangeCatalog(adminUid: string): Promise<v
     {
       id: 'brd_mtn_pulse_237',
       brandName: 'MTN Cameroon',
+      agencyName: 'Kamer Talent Agency',
       titleEn: 'MTN Pulse Back-to-Campus Creator Integration',
       titleFr: 'Campagne Créateurs Rentrée MTN Pulse',
       category: 'TikTok Series',
@@ -1451,6 +1666,7 @@ export async function adminBootstrapExchangeCatalog(adminUid: string): Promise<v
     {
       id: 'brd_castel_afro_sessions',
       brandName: 'Castel Beer Cameroun',
+      agencyName: '237 Creative Hub',
       titleEn: 'Acoustic Live Sessions Douala & Kribi',
       titleFr: 'Sessions Live Acoustiques Douala & Kribi',
       category: 'Music & Albums',
@@ -1458,6 +1674,18 @@ export async function adminBootstrapExchangeCatalog(adminUid: string): Promise<v
       deliverable: 'Title integration on live EP visualizers + 2 VIP listening showcases',
       status: 'OPEN',
       createdAt: iso(140),
+    },
+    {
+      id: 'brd_orange_money_fintech',
+      brandName: 'Orange Cameroun',
+      agencyName: 'Akwa Media Partners',
+      titleEn: 'Orange Money Zero-Fee Creator Payout Week',
+      titleFr: 'Semaine Paiements Créateurs Orange Money',
+      category: 'Podcasts',
+      budgetXAF: 2800000,
+      deliverable: '4 bilingual podcast host-reads + YouTube Shorts demonstration',
+      status: 'OPEN',
+      createdAt: iso(110),
     },
   ];
 
@@ -1559,4 +1787,177 @@ export async function adminRunAggregatorSync(adminUid: string): Promise<{
     postsCount: data.posts.length,
     message: logDoc.message || 'Sync complete',
   };
+}
+
+export async function runPulseAgentOnServer(params: {
+  creators: Creator[];
+  blogUrls?: string[];
+  manualHeadlines?: Array<{ sourceName: string; headline: string; url?: string }>;
+}): Promise<AgentPulseResult> {
+  const res = await fetch('/api/v1/agents/run-pulse', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      creators: params.creators.map((c) => ({
+        id: c.id,
+        name: c.name,
+        handle: c.handle,
+        category: c.category,
+        city: c.city,
+      })),
+      blogUrls: params.blogUrls || [],
+      manualHeadlines: params.manualHeadlines || [],
+    }),
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json?.error?.message || 'Market pulse agent failed');
+  }
+  return json.data as AgentPulseResult;
+}
+
+export async function verifyClaimBioCodeOnServer(params: {
+  stageName: string;
+  handle: string;
+  bioVerificationCode: string;
+  socialUrl?: string;
+}): Promise<BioVerificationAgentResult> {
+  const res = await fetch('/api/v1/agents/verify-claim', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json?.error?.message || 'Verification agent failed');
+  }
+  return json.data as BioVerificationAgentResult;
+}
+
+export async function adminCommitAgentPulse(params: {
+  adminUid: string;
+  creators: Creator[];
+  pulse: AgentPulseResult;
+  includeCatalysts?: boolean;
+  includePredictions?: boolean;
+}): Promise<{ postsCommitted: number; creatorsRepriced: number; predictionsOpened: number }> {
+  const nowIso = new Date().toISOString();
+  const batch = writeBatch(db);
+  const creatorMap = new Map(params.creators.map((c) => [c.id, c]));
+
+  let postsCommitted = 0;
+  let creatorsRepriced = 0;
+  let predictionsOpened = 0;
+
+  if (params.includeCatalysts !== false) {
+    for (const post of params.pulse.catalysts) {
+      batch.set(doc(db, 'news_posts', post.id), stripUndefined({ ...post }));
+      postsCommitted += 1;
+
+      if (post.creatorId && post.impactPct && Math.abs(post.impactPct) > 0.1) {
+        const target = creatorMap.get(post.creatorId);
+        if (target) {
+          const repriced = calculateCatalystRepricing({
+            previousPriceXAF: target.sharePriceXAF,
+            baseSharePriceXAF: target.baseSharePriceXAF || target.sharePriceXAF,
+            impactPct: post.impactPct,
+          });
+          const nextSparkline = buildNextSparkline(target, repriced.nextPriceXAF);
+          const nextHistory = appendPriceHistoryPoint(target.priceHistory, {
+            time: nowIso,
+            priceXAF: repriced.nextPriceXAF,
+            catalystTitle: post.headline.slice(0, 90),
+            deltaPct: post.impactPct,
+          });
+          creatorMap.set(target.id, {
+            ...target,
+            sharePriceXAF: repriced.nextPriceXAF,
+            priceChangePct: repriced.priceChangePct,
+            sparkline: nextSparkline,
+            priceHistory: nextHistory,
+          });
+          batch.update(doc(db, 'creators', target.id), {
+            sharePriceXAF: repriced.nextPriceXAF,
+            priceChangePct: repriced.priceChangePct,
+            sparkline: nextSparkline,
+            priceHistory: nextHistory,
+            updatedAt: nowIso,
+          });
+          creatorsRepriced += 1;
+
+          const notifId = makeDocId('ntf');
+          batch.set(
+            doc(db, 'notifications', notifId),
+            stripUndefined<NotificationItem>({
+              id: notifId,
+              uid: 'ALL',
+              titleEn: `${target.name} ${post.impactPct >= 0 ? '+' : ''}${post.impactPct}% (${post.sourceName})`,
+              titleFr: `${target.name} ${post.impactPct >= 0 ? '+' : ''}${post.impactPct}% (${post.sourceName})`,
+              bodyEn: post.headline.slice(0, 220),
+              bodyFr: post.headline.slice(0, 220),
+              kind: Math.abs(post.impactPct) >= 5 ? 'PRICE_SPIKE' : 'CATALYST',
+              creatorId: target.id,
+              deltaPct: post.impactPct,
+              createdAt: nowIso,
+            })
+          );
+        }
+      }
+    }
+  }
+
+  if (params.includePredictions !== false) {
+    for (const proposal of params.pulse.generatedPredictions) {
+      const predId = makeDocId('prd');
+      const yesPool = Math.max(10000, Math.round(proposal.initialYesProbabilityPct * 1000));
+      const noPool = Math.max(10000, Math.round((100 - proposal.initialYesProbabilityPct) * 1000));
+      const odds = calculatePredictionProbabilities(yesPool, noPool);
+
+      const pred = stripUndefined<PredictionMarket>({
+        id: predId,
+        creatorId: proposal.creatorId,
+        creatorName: proposal.creatorName,
+        category: proposal.category,
+        questionEn: proposal.questionEn,
+        questionFr: proposal.questionFr,
+        resolutionCriteria: proposal.resolutionCriteria,
+        yesShares: Math.round(yesPool / odds.yesSharePriceXAF),
+        noShares: Math.round(noPool / odds.noSharePriceXAF),
+        yesPoolXAF: yesPool,
+        noPoolXAF: noPool,
+        yesProbabilityPct: odds.yesProbabilityPct,
+        noProbabilityPct: odds.noProbabilityPct,
+        totalVolumeXAF: yesPool + noPool,
+        sparkline: [odds.yesProbabilityPct, odds.yesProbabilityPct],
+        status: 'OPEN',
+        closesAt: new Date(Date.now() + 21 * 24 * 3600 * 1000).toISOString(),
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
+      batch.set(doc(db, 'predictions', predId), pred);
+      predictionsOpened += 1;
+    }
+  }
+
+  const logId = makeDocId('sync');
+  batch.set(
+    doc(db, 'sync_logs', logId),
+    stripUndefined<SyncLog>({
+      id: logId,
+      triggeredByUid: params.adminUid,
+      provider: params.pulse.sourcesChecked.join(' + ').slice(0, 80) || 'Autonomous Agent',
+      postsFetched: postsCommitted,
+      metricsUpdated: creatorsRepriced + predictionsOpened,
+      status: 'success',
+      message: `Committed ${postsCommitted} catalysts, repriced ${creatorsRepriced} creators, opened ${predictionsOpened} prediction pools.`,
+      createdAt: nowIso,
+    })
+  );
+
+  try {
+    await batch.commit();
+    return { postsCommitted, creatorsRepriced, predictionsOpened };
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, 'news_posts/agent_commit');
+  }
 }

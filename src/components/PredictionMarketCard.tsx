@@ -21,7 +21,7 @@ export const PredictionMarketCard: React.FC<PredictionMarketCardProps> = ({
   const noPrice = prediction.noProbabilityPct * 10;
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] p-4 space-y-3 hover:border-violet-500/60 transition-colors">
+    <div className="rounded-3xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] p-5 space-y-3.5 hover:border-violet-500/60 transition-colors">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2 text-[11px] text-[#645582] dark:text-[#A99BC8]">
@@ -45,18 +45,18 @@ export const PredictionMarketCard: React.FC<PredictionMarketCardProps> = ({
       {/* Live Probability Bar */}
       <div className="w-full h-1.5 rounded-full bg-red-500/25 overflow-hidden">
         <div
-          className="h-full bg-emerald-500 transition-all"
+          className="h-full bg-emerald-500 rounded-full transition-all"
           style={{ width: `${prediction.yesProbabilityPct}%` }}
         />
       </div>
 
       {/* Direct Yes / No Voting Buttons */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2.5">
         <button
           type="button"
           disabled={prediction.status !== 'OPEN'}
           onClick={() => onVote(prediction, 'YES')}
-          className="py-2 px-3 rounded-xl bg-emerald-500/12 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-600 dark:text-emerald-400 text-xs font-semibold transition-colors tabular-nums disabled:opacity-50"
+          className="py-2.5 px-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors tabular-nums disabled:opacity-50"
         >
           {t.yes} · {formatXAF(yesPrice)}
         </button>
@@ -64,7 +64,7 @@ export const PredictionMarketCard: React.FC<PredictionMarketCardProps> = ({
           type="button"
           disabled={prediction.status !== 'OPEN'}
           onClick={() => onVote(prediction, 'NO')}
-          className="py-2 px-3 rounded-xl bg-red-500/12 hover:bg-red-500/25 border border-red-500/35 text-red-600 dark:text-red-400 text-xs font-semibold transition-colors tabular-nums disabled:opacity-50"
+          className="py-2.5 px-3 rounded-full bg-red-600 hover:bg-red-500 text-white text-xs font-semibold transition-colors tabular-nums disabled:opacity-50"
         >
           {t.no} · {formatXAF(noPrice)}
         </button>

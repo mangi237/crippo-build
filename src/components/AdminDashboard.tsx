@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft,
+  Bot,
   CheckCircle2,
   Flame,
   PlusCircle,
   RefreshCw,
   Rocket,
   ShieldAlert,
+  ShieldCheck,
   TrendingUp,
   XCircle,
 } from 'lucide-react';
 import type {
+  AgentPulseResult,
   AggregatorConfigStatus,
+  BioVerificationAgentResult,
+  BrandApplication,
   BrandCampaign,
   Creator,
   CreatorApplication,
@@ -25,19 +30,24 @@ import {
   adminAdvanceEscrowStage,
   adminApplyCulturalCatalyst,
   adminBootstrapExchangeCatalog,
+  adminCommitAgentPulse,
   adminCreateBrandCampaign,
   adminCreateCreatorListing,
   adminCreatePrediction,
   adminResolvePrediction,
   adminReviewApplication,
+  adminReviewBrandApplication,
   adminRunAggregatorSync,
   adminUpdateMemoStatus,
   fetchAggregatorStatus,
+  runPulseAgentOnServer,
   runUnderwritingAudit,
   subscribeAllApplications,
+  subscribeAllBrandApplications,
   subscribeAllMemoRequests,
   subscribeBrandCampaigns,
   subscribeSyncLogs,
+  verifyClaimBioCodeOnServer,
 } from '../services/firestoreService';
 import { formatXAF } from '../utils/format';
 
@@ -48,7 +58,7 @@ interface AdminDashboardProps {
   onExit: () => void;
 }
 
-type AdminSection = 'applications' | 'raises_escrow' | 'predictions' | 'brands_memos' | 'sync';
+type AdminSection = 'applications' | 'agents' | 'raises_escrow' | 'predictions' | 'brands_memos' | 'sync';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   user,
@@ -58,6 +68,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const [section, setSection] = useState<AdminSection>('applications');
   const [applications, setApplications] = useState<CreatorApplication[]>([]);
+  const [brandApplications, setBrandApplications] = useState<BrandApplication[]>([]);
   const [memos, setMemos] = useState<MemoRequest[]>([]);
   const [campaigns, setCampaigns] = useState<BrandCampaign[]>([]);
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
@@ -68,6 +79,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [banner, setBanner] = useState<string | null>(null);
 
   const [priceByAppId, setPriceByAppId] = useState<Record<string, number>>({});
+  const [bioCheckByAppId, setBioCheckByAppId] = useState<Record<string, BioVerificationAgentResult>>({});
+  const [checkingBioAppId, setCheckingBioAppId] = useState<string | null>(null);
+
+  // Autonomous Agents tab state
+  const [blogUrlsInput, setBlogUrlsInput] = useState('');
+  const [manualHeadlinesInput, setManualHeadlinesInput] = useState('');
+  const [runningPulseAgent, setRunningPulseAgent] = useState(false);
+  const [committingPulse, setCommittingPulse] = useState(false);
+  const [pulsePreview, setPulsePreview] = useState<AgentPulseResult | null>(null);
 
   // Create Raise state
   const [name, setName] = useState('');
@@ -105,6 +125,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Brand Campaign creator state
   const [brandName, setBrandName] = useState('');
+  const [agencyName, setAgencyName] = useState('');
   const [brandTitleEn, setBrandTitleEn] = useState('');
   const [brandTitleFr, setBrandTitleFr] = useState('');
   const [brandCategory, setBrandCategory] = useState('Music & Albums');
@@ -115,12 +136,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   useEffect(() => {
     if (!user?.admin) return;
     const unsubApps = subscribeAllApplications(setApplications);
+    const unsubBrandApps = subscribeAllBrandApplications(setBrandApplications);
     const unsubMemos = subscribeAllMemoRequests(setMemos);
     const unsubBrands = subscribeBrandCampaigns(setCampaigns);
     const unsubLogs = subscribeSyncLogs(setSyncLogs);
     fetchAggregatorStatus().then(setAggStatus).catch(() => {});
     return () => {
       unsubApps();
+      unsubBrandApps();
       unsubMemos();
       unsubBrands();
       unsubLogs();
@@ -129,20 +152,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   if (!user || !user.admin) {
     return (
-      <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-8 text-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-red-500/15 text-red-500 flex items-center justify-center mx-auto">
+      <div className="py-16 px-4 text-center space-y-4">
+        <div className="w-14 h-14 rounded-full bg-red-500/15 text-red-500 flex items-center justify-center mx-auto">
           <ShieldAlert className="w-6 h-6" />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <h1 className="text-lg font-bold text-[#11081F] dark:text-[#F8F7FC]">Committee Access Required</h1>
-          <p className="text-xs text-[#645582] dark:text-[#A99BC8] max-w-xs mx-auto">
+          <p className="text-xs text-[#645582] dark:text-[#A99BC8] max-w-xs mx-auto leading-relaxed">
             This terminal is restricted to verified exchange administrators.
           </p>
         </div>
         <button
           type="button"
           onClick={onExit}
-          className="px-5 py-2.5 rounded-xl bg-violet-600 text-white text-xs font-semibold"
+          className="px-6 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
         >
           Back to Exchange
         </button>
@@ -272,6 +295,91 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   }
 
+  async function handleCheckBioCode(app: CreatorApplication) {
+    setCheckingBioAppId(app.id);
+    setBanner(null);
+    try {
+      const result = await verifyClaimBioCodeOnServer({
+        stageName: app.stageName,
+        handle: app.handle,
+        bioVerificationCode: app.bioVerificationCode || `CRIPPO-${app.uid.slice(0, 6).toUpperCase()}`,
+        socialUrl: app.tiktokUrl || app.facebookUrl,
+      });
+      setBioCheckByAppId((prev) => ({ ...prev, [app.id]: result }));
+      setBanner(
+        result.codeFoundInPublicProfile
+          ? `Bio-Code verified on ${app.stageName} public profile (${result.confidenceScore}% confidence).`
+          : `Bio-Code check completed for ${app.stageName}: ${result.notes}`
+      );
+    } catch (err) {
+      setBanner(err instanceof Error ? err.message : 'Bio-Code verification failed.');
+    } finally {
+      setCheckingBioAppId(null);
+    }
+  }
+
+  async function handleRunPulseAgent(e: React.FormEvent) {
+    e.preventDefault();
+    setRunningPulseAgent(true);
+    setBanner(null);
+    try {
+      const blogUrls = blogUrlsInput
+        .split(/[\n,]+/)
+        .map((s) => s.trim())
+        .filter((s) => /^https?:\/\//i.test(s));
+
+      const manualHeadlines = manualHeadlinesInput
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+          const parts = line.split('|');
+          if (parts.length >= 2) {
+            return {
+              sourceName: parts[0].trim(),
+              headline: parts.slice(1).join('|').trim(),
+            };
+          }
+          return { sourceName: 'Cameroon Entertainment Desk', headline: line };
+        });
+
+      const res = await runPulseAgentOnServer({
+        creators,
+        blogUrls,
+        manualHeadlines,
+      });
+      setPulsePreview(res);
+      setBanner(res.summary);
+    } catch (err) {
+      setBanner(err instanceof Error ? err.message : 'Market pulse agent failed.');
+    } finally {
+      setRunningPulseAgent(false);
+    }
+  }
+
+  async function handleCommitPulse() {
+    if (!user || !pulsePreview) return;
+    setCommittingPulse(true);
+    setBanner(null);
+    try {
+      const stats = await adminCommitAgentPulse({
+        adminUid: user.uid,
+        creators,
+        pulse: pulsePreview,
+        includeCatalysts: true,
+        includePredictions: true,
+      });
+      setBanner(
+        `Committed ${stats.postsCommitted} news catalysts, repriced ${stats.creatorsRepriced} creator raises, and opened ${stats.predictionsOpened} voting pools.`
+      );
+      setPulsePreview(null);
+    } catch (err) {
+      setBanner(err instanceof Error ? err.message : 'Failed to commit agent pulse.');
+    } finally {
+      setCommittingPulse(false);
+    }
+  }
+
   async function handleCreateBrand(e: React.FormEvent) {
     e.preventDefault();
     setCreatingBrand(true);
@@ -279,6 +387,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       await adminCreateBrandCampaign({
         brandName,
+        agencyName: agencyName || undefined,
         titleEn: brandTitleEn,
         titleFr: brandTitleFr || brandTitleEn,
         category: brandCategory,
@@ -287,6 +396,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       });
       setBanner(`Published brand campaign for ${brandName}.`);
       setBrandName('');
+      setAgencyName('');
       setBrandTitleEn('');
       setBrandTitleFr('');
       setBrandDeliverable('');
@@ -331,7 +441,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <button
           type="button"
           onClick={onExit}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC]"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC]"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Exchange</span>
@@ -342,34 +452,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             type="button"
             disabled={bootstrapping}
             onClick={handleBootstrapCatalog}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold disabled:opacity-50"
           >
             <Rocket className="w-3.5 h-3.5" />
             <span>{bootstrapping ? 'Publishing...' : 'Publish Cameroon Starter Markets'}</span>
           </button>
-          <span className="px-3 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold">
+          <span className="px-4 py-2 rounded-full bg-violet-600 text-white text-xs font-semibold">
             Exchange Console
           </span>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+      {/* Underline Navigation Tabs */}
+      <div className="flex items-center gap-6 overflow-x-auto border-b border-[#E4DFF2] dark:border-[#2A174A]">
         {[
-          { id: 'applications', label: `Applications (${applications.filter((a) => a.status === 'pending').length})` },
+          { id: 'applications', label: `Claims & KYC (${applications.filter((a) => a.status === 'pending').length})` },
+          { id: 'agents', label: 'AI Agents' },
           { id: 'raises_escrow', label: `Raises & Escrow (${creators.length})` },
           { id: 'predictions', label: `Predictions (${predictions.length})` },
-          { id: 'brands_memos', label: `Brands & Memos (${memos.filter((m) => m.status === 'pending').length})` },
-          { id: 'sync', label: 'Social Pulse Sync' },
+          {
+            id: 'brands_memos',
+            label: `Brands & Memos (${brandApplications.filter((b) => b.status === 'pending').length + memos.filter((m) => m.status === 'pending').length})`,
+          },
+          { id: 'sync', label: 'Social Sync Logs' },
         ].map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => setSection(item.id as AdminSection)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-colors ${
+            className={`pb-3 pt-1 text-xs font-semibold whitespace-nowrap shrink-0 border-b-2 transition-colors ${
               section === item.id
-                ? 'bg-violet-600 text-white'
-                : 'bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] text-[#645582] dark:text-[#A99BC8]'
+                ? 'border-violet-500 text-[#11081F] dark:text-[#F8F7FC]'
+                : 'border-transparent text-[#645582] dark:text-[#A99BC8] hover:text-[#11081F] dark:hover:text-white'
             }`}
           >
             {item.label}
@@ -378,129 +492,305 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {banner && (
-        <div className="p-3.5 rounded-2xl bg-violet-500/10 border border-violet-500/35 text-xs font-medium text-[#11081F] dark:text-[#F8F7FC]">
+        <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-500/35 text-xs font-medium text-[#11081F] dark:text-[#F8F7FC]">
           {banner}
         </div>
       )}
 
-      {/* 1. APPLICATIONS */}
+      {/* 1. APPLICATIONS & CLAIMS */}
       {section === 'applications' && (
         <div className="space-y-3">
           {applications.length === 0 ? (
-            <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-8 text-center text-xs text-[#645582] dark:text-[#A99BC8]">
-              No creator raise applications submitted yet.
+            <div className="py-12 text-center space-y-2">
+              <p className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                No creator claims or raise applications yet
+              </p>
+              <p className="text-xs text-[#645582] dark:text-[#A99BC8]">
+                Creator claim requests with Bio-Code ownership checks and KYC proofs will appear here.
+              </p>
             </div>
           ) : (
-            applications.map((app) => (
-              <div
-                key={app.id}
-                className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl p-5 space-y-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                      {app.stageName}
-                    </h3>
-                    <p className="text-xs text-[#645582] dark:text-[#A99BC8]">
-                      {app.handle} · {app.category} {app.city ? `· ${app.city}` : ''}
-                    </p>
-                  </div>
-                  <span
-                    className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold capitalize ${
-                      app.status === 'approved'
-                        ? 'bg-emerald-500/15 text-emerald-500'
-                        : app.status === 'rejected'
-                        ? 'bg-red-500/15 text-red-500'
-                        : 'bg-violet-500/15 text-violet-400'
-                    }`}
-                  >
-                    {app.status}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] p-3 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] tabular-nums">
-                  <div>
-                    <span className="text-[#645582] dark:text-[#A99BC8]">Bio-Code:</span>{' '}
-                    <strong className="font-mono text-violet-500">{app.bioVerificationCode || '—'}</strong>
-                  </div>
-                  <div>
-                    <span className="text-[#645582] dark:text-[#A99BC8]">KYC:</span>{' '}
-                    <strong className="text-[#11081F] dark:text-[#F8F7FC]">{app.kycDocType || 'CNI'}</strong>
-                  </div>
-                  <div>
-                    <span className="text-[#645582] dark:text-[#A99BC8]">MoMo:</span>{' '}
-                    <strong className="text-[#11081F] dark:text-[#F8F7FC]">{app.momoNumber || '—'}</strong>
-                  </div>
-                  <div>
-                    <span className="text-[#645582] dark:text-[#A99BC8]">Net Budget:</span>{' '}
-                    <strong className="text-[#11081F] dark:text-[#F8F7FC]">
-                      {formatXAF(app.netBudgetXAF || app.targetRaiseXAF || 0)}
-                    </strong>
-                  </div>
-                </div>
-
-                {app.underwritingVerdict && (
-                  <p className="text-xs text-emerald-500 font-medium">{app.underwritingVerdict}</p>
-                )}
-
-                <p className="text-xs text-[#544675] dark:text-[#B9ADD6] leading-relaxed">{app.pitch}</p>
-
-                <div className="flex flex-wrap gap-3 text-[11px]">
-                  {app.tiktokUrl && (
-                    <a href={app.tiktokUrl} target="_blank" rel="noreferrer" className="underline text-violet-500">
-                      TikTok / Social
-                    </a>
-                  )}
-                  {app.facebookUrl && (
-                    <a href={app.facebookUrl} target="_blank" rel="noreferrer" className="underline text-violet-500">
-                      Facebook
-                    </a>
-                  )}
-                  {app.verificationMediaUrl && (
-                    <a href={app.verificationMediaUrl} target="_blank" rel="noreferrer" className="underline text-violet-500">
-                      KYC Proof Document
-                    </a>
-                  )}
-                </div>
-
-                {app.status === 'pending' && (
-                  <div className="pt-2 border-t border-[#E4DFF2] dark:border-[#2A174A] flex flex-wrap items-center gap-2.5">
-                    <input
-                      type="number"
-                      min={100}
-                      step={50}
-                      value={priceByAppId[app.id] ?? ''}
-                      placeholder="Override P₀ (opt)"
-                      onChange={(e) =>
-                        setPriceByAppId((prev) => ({
-                          ...prev,
-                          [app.id]: Number(e.target.value),
-                        }))
-                      }
-                      className="w-36 px-3 py-2 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl tabular-nums text-[#11081F] dark:text-[#F8F7FC]"
-                    />
-                    <button
-                      type="button"
-                      disabled={busyId === app.id}
-                      onClick={() => handleReview(app, 'approved')}
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-1.5"
+            applications.map((app) => {
+              const bioResult = bioCheckByAppId[app.id];
+              return (
+                <div
+                  key={app.id}
+                  className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                          {app.stageName}
+                        </h3>
+                        {app.claimCreatorId && (
+                          <span className="px-2.5 py-0.5 rounded-full bg-violet-600/15 text-violet-500 text-[10px] font-bold">
+                            CLAIM DIRECTORY PROFILE
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#645582] dark:text-[#A99BC8]">
+                        {app.handle} · {app.category} {app.city ? `· ${app.city}` : ''}
+                      </p>
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-[11px] font-semibold capitalize ${
+                        app.status === 'approved'
+                          ? 'bg-emerald-500/15 text-emerald-500'
+                          : app.status === 'rejected'
+                          ? 'bg-red-500/15 text-red-500'
+                          : 'bg-violet-500/15 text-violet-400'
+                      }`}
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Approve & Open Raise</span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busyId === app.id}
-                      onClick={() => handleReview(app, 'rejected')}
-                      className="px-4 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-500 text-xs font-semibold inline-flex items-center gap-1.5"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      <span>Reject</span>
-                    </button>
+                      {app.status}
+                    </span>
                   </div>
-                )}
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] tabular-nums">
+                    <div>
+                      <span className="text-[#645582] dark:text-[#A99BC8]">Bio-Code:</span>{' '}
+                      <strong className="font-mono text-violet-500">{app.bioVerificationCode || '—'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[#645582] dark:text-[#A99BC8]">KYC:</span>{' '}
+                      <strong className="text-[#11081F] dark:text-[#F8F7FC]">{app.kycDocType || 'CNI'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[#645582] dark:text-[#A99BC8]">MoMo:</span>{' '}
+                      <strong className="text-[#11081F] dark:text-[#F8F7FC]">{app.momoNumber || '—'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[#645582] dark:text-[#A99BC8]">Net Budget:</span>{' '}
+                      <strong className="text-[#11081F] dark:text-[#F8F7FC]">
+                        {formatXAF(app.netBudgetXAF || app.targetRaiseXAF || 0)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {bioResult && (
+                    <div
+                      className={`p-3 rounded-2xl border text-xs space-y-1 ${
+                        bioResult.codeFoundInPublicProfile
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'
+                          : 'bg-violet-500/10 border-violet-500/30 text-[#11081F] dark:text-[#F8F7FC]'
+                      }`}
+                    >
+                      <div className="font-bold">
+                        Bio-Code Agent: {bioResult.codeFoundInPublicProfile ? 'Code Detected' : 'Manual Inspection Needed'} ·{' '}
+                        {bioResult.confidenceScore}% confidence · {bioResult.reachable ? 'URL Reachable' : 'URL Private/Unreachable'}
+                      </div>
+                      <div className="opacity-85">{bioResult.notes}</div>
+                    </div>
+                  )}
+
+                  {app.underwritingVerdict && (
+                    <p className="text-xs text-emerald-500 font-medium">{app.underwritingVerdict}</p>
+                  )}
+
+                  <p className="text-xs text-[#544675] dark:text-[#B9ADD6] leading-relaxed">{app.pitch}</p>
+
+                  <div className="flex flex-wrap gap-3 text-[11px]">
+                    {app.tiktokUrl && (
+                      <a href={app.tiktokUrl} target="_blank" rel="noreferrer" className="underline text-violet-500">
+                        TikTok / Social
+                      </a>
+                    )}
+                    {app.facebookUrl && (
+                      <a href={app.facebookUrl} target="_blank" rel="noreferrer" className="underline text-violet-500">
+                        Facebook
+                      </a>
+                    )}
+                    {app.verificationMediaUrl && (
+                      <a href={app.verificationMediaUrl} target="_blank" rel="noreferrer" className="underline text-violet-500">
+                        KYC Proof Document
+                      </a>
+                    )}
+                  </div>
+
+                  {app.status === 'pending' && (
+                    <div className="pt-2 border-t border-[#E4DFF2] dark:border-[#2A174A] flex flex-wrap items-center gap-2.5">
+                      <input
+                        type="number"
+                        min={100}
+                        step={50}
+                        value={priceByAppId[app.id] ?? ''}
+                        placeholder="Override P₀ (opt)"
+                        onChange={(e) =>
+                          setPriceByAppId((prev) => ({
+                            ...prev,
+                            [app.id]: Number(e.target.value),
+                          }))
+                        }
+                        className="w-36 px-3.5 py-2 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full tabular-nums text-[#11081F] dark:text-[#F8F7FC]"
+                      />
+                      <button
+                        type="button"
+                        disabled={checkingBioAppId === app.id}
+                        onClick={() => handleCheckBioCode(app)}
+                        className="px-4 py-2 rounded-full bg-violet-600/15 hover:bg-violet-600/25 text-violet-500 text-xs font-semibold inline-flex items-center gap-1.5"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>{checkingBioAppId === app.id ? 'Checking URL...' : 'Run Bio-Code AI Check'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId === app.id}
+                        onClick={() => handleReview(app, 'approved')}
+                        className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-1.5"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>{app.claimCreatorId ? 'Approve Claim & Verify' : 'Approve & Open Raise'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId === app.id}
+                        onClick={() => handleReview(app, 'rejected')}
+                        className="px-4 py-2 rounded-full bg-red-500/15 hover:bg-red-500/25 text-red-500 text-xs font-semibold inline-flex items-center gap-1.5"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>Reject</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* 1B. AUTONOMOUS AI AGENTS TAB */}
+      {section === 'agents' && (
+        <div className="space-y-4">
+          <form
+            onSubmit={handleRunPulseAgent}
+            className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 space-y-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-violet-500" />
+                  <h2 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                    Autonomous News, Social & Prediction Pool Agent
+                  </h2>
+                </div>
+                <p className="text-xs text-[#645582] dark:text-[#A99BC8] leading-relaxed">
+                  Scrapes Cameroon local news/blog RSS feeds + Facebook & TikTok creator metrics, classifies sentiment against listed creators to compute bounded share price fluctuations, and generates bilingual Yes/No voting pools.
+                </p>
               </div>
-            ))
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-[#645582] dark:text-[#A99BC8]">
+                Local Blog / News RSS Feed URLs (comma or newline separated)
+              </label>
+              <textarea
+                rows={2}
+                value={blogUrlsInput}
+                onChange={(e) => setBlogUrlsInput(e.target.value)}
+                placeholder="https://example.cm/feed/, https://237cultureblog.com/rss.xml"
+                className="w-full px-4 py-2.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl text-[#11081F] dark:text-[#F8F7FC] focus:outline-none focus:border-violet-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-[#645582] dark:text-[#A99BC8]">
+                Optional Manual Editorial Headlines (one per line: Source | Headline)
+              </label>
+              <textarea
+                rows={3}
+                value={manualHeadlinesInput}
+                onChange={(e) => setManualHeadlinesInput(e.target.value)}
+                placeholder="237 Showbiz | Stanley Enow announces sold-out Douala concert tour&#10;Mimi Mefo Info | Ko-C nominated for Canal d'Or Best Urban Artist"
+                className="w-full px-4 py-2.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl text-[#11081F] dark:text-[#F8F7FC] focus:outline-none focus:border-violet-500"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={runningPulseAgent}
+              className="px-6 py-3 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-semibold inline-flex items-center gap-2"
+            >
+              <Bot className="w-4 h-4" />
+              <span>{runningPulseAgent ? 'Running AI Pulse Agent...' : 'Run Market Pulse & Pool Agent'}</span>
+            </button>
+          </form>
+
+          {pulsePreview && (
+            <div className="bg-white dark:bg-[#180D2B] border border-violet-500/40 rounded-3xl p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">Agent Output Preview</h3>
+                  <p className="text-xs text-[#645582] dark:text-[#A99BC8] mt-0.5">{pulsePreview.summary}</p>
+                </div>
+                <button
+                  type="button"
+                  disabled={committingPulse}
+                  onClick={handleCommitPulse}
+                  className="px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold"
+                >
+                  {committingPulse ? 'Committing...' : 'Commit Fluctuations & Open Pools'}
+                </button>
+              </div>
+
+              {pulsePreview.catalysts.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                    Matched News Catalysts & Repricing ({pulsePreview.catalysts.length})
+                  </div>
+                  <div className="space-y-2">
+                    {pulsePreview.catalysts.map((cat) => (
+                      <div
+                        key={cat.id}
+                        className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-semibold text-violet-500">
+                            {cat.sourceName} {cat.creatorId ? '· Linked Creator' : '· Market Index'}
+                          </div>
+                          <div className="text-[#11081F] dark:text-[#F8F7FC] truncate">{cat.headline}</div>
+                        </div>
+                        {typeof cat.impactPct === 'number' && (
+                          <span
+                            className={`font-mono font-bold tabular-nums shrink-0 ${
+                              cat.impactPct >= 0 ? 'text-emerald-500' : 'text-red-500'
+                            }`}
+                          >
+                            {cat.impactPct >= 0 ? '+' : ''}
+                            {cat.impactPct}%
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {pulsePreview.generatedPredictions.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-[#11081F] dark:text-[#F8F7FC]">
+                    Synthesized Yes/No Voting Pools ({pulsePreview.generatedPredictions.length})
+                  </div>
+                  <div className="space-y-2">
+                    {pulsePreview.generatedPredictions.map((pred, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-2xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs space-y-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-emerald-500">{pred.category}</span>
+                          <span className="font-mono font-bold tabular-nums">
+                            Initial YES {pred.initialYesProbabilityPct}%
+                          </span>
+                        </div>
+                        <div className="font-bold text-[#11081F] dark:text-[#F8F7FC]">{pred.questionEn}</div>
+                        <div className="text-[#645582] dark:text-[#A99BC8]">{pred.questionFr}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -884,24 +1174,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* 4. BRAND CAMPAIGNS & MEMOS */}
+      {/* 4. BRAND CAMPAIGNS, AGENCY PITCHES & MEMOS */}
       {section === 'brands_memos' && (
         <div className="space-y-4">
           <form
             onSubmit={handleCreateBrand}
-            className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl p-5 space-y-3"
+            className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 space-y-3"
           >
             <h2 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
-              Create Brand Sponsorship Campaign
+              Create Brand & Agency Sponsorship Campaign
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <input
                 type="text"
                 required
                 value={brandName}
                 onChange={(e) => setBrandName(e.target.value)}
                 placeholder="Brand (e.g. MTN Cameroon) *"
-                className="px-3.5 py-2.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC]"
+                className="px-4 py-2.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
+              />
+              <input
+                type="text"
+                value={agencyName}
+                onChange={(e) => setAgencyName(e.target.value)}
+                placeholder="Partner Agency (e.g. Kamer Talent)"
+                className="px-4 py-2.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
               />
               <input
                 type="text"
@@ -909,7 +1206,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 value={brandTitleEn}
                 onChange={(e) => setBrandTitleEn(e.target.value)}
                 placeholder="Campaign Title (EN) *"
-                className="px-3.5 py-2.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC]"
+                className="px-4 py-2.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
               />
               <input
                 type="number"
@@ -918,7 +1215,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 value={brandBudget}
                 onChange={(e) => setBrandBudget(Number(e.target.value))}
                 placeholder="Budget XAF"
-                className="px-3.5 py-2.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl tabular-nums"
+                className="px-4 py-2.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full tabular-nums"
               />
             </div>
             <div className="flex flex-col sm:flex-row gap-2.5">
@@ -927,32 +1224,80 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 value={brandDeliverable}
                 onChange={(e) => setBrandDeliverable(e.target.value)}
                 placeholder="Deliverable brief..."
-                className="flex-1 px-3.5 py-2.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-xl text-[#11081F] dark:text-[#F8F7FC]"
+                className="flex-1 px-4 py-2.5 text-xs bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC]"
               />
               <button
                 type="submit"
                 disabled={creatingBrand}
-                className="px-5 py-2.5 rounded-xl bg-violet-600 text-white text-xs font-semibold"
+                className="px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
               >
                 {creatingBrand ? 'Saving...' : 'Publish Campaign'}
               </button>
             </div>
             {campaigns.length > 0 && (
               <div className="text-[11px] text-[#645582] dark:text-[#A99BC8]">
-                {campaigns.length} active brand sponsorship campaign(s) live on exchange.
+                {campaigns.length} active brand/agency sponsorship campaign(s) live on exchange.
               </div>
             )}
           </form>
 
+          {/* Creator Brand Campaign Pitches */}
+          {brandApplications.length > 0 && (
+            <div className="space-y-2.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#645582] dark:text-[#A99BC8]">
+                Creator Pitches for Brand & Agency Deals ({brandApplications.length})
+              </h3>
+              {brandApplications.map((bapp) => (
+                <div
+                  key={bapp.id}
+                  className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 space-y-2.5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-violet-500">
+                        {bapp.brandName} · {bapp.campaignTitle}
+                      </div>
+                      <h4 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC] mt-0.5">
+                        {bapp.creatorName} · Proposed {formatXAF(bapp.proposedFeeXAF)}
+                      </h4>
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-violet-500/15 text-violet-400 text-[11px] font-semibold capitalize">
+                      {bapp.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#544675] dark:text-[#B9ADD6]">{bapp.pitch}</p>
+                  {bapp.status === 'pending' && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => adminReviewBrandApplication(bapp, 'accepted')}
+                        className="px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                      >
+                        Accept Match
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => adminReviewBrandApplication(bapp, 'rejected')}
+                        className="px-4 py-1.5 rounded-full bg-red-500/15 text-red-500 text-xs font-semibold"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {memos.length === 0 ? (
-            <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl p-6 text-center text-xs text-[#645582] dark:text-[#A99BC8]">
+            <div className="py-8 text-center text-xs text-[#645582] dark:text-[#A99BC8]">
               No unlisted creator memo requests yet.
             </div>
           ) : (
             memos.map((memo) => (
               <div
                 key={memo.id}
-                className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl p-5 space-y-2.5"
+                className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 space-y-2.5"
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -961,7 +1306,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {memo.platform} {memo.handle ? `· ${memo.handle}` : ''}
                     </p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-xl bg-violet-500/15 text-violet-400 text-[11px] font-semibold capitalize">
+                  <span className="px-3 py-1 rounded-full bg-violet-500/15 text-violet-400 text-[11px] font-semibold capitalize">
                     {memo.status}
                   </span>
                 </div>
@@ -974,7 +1319,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       setHandle(memo.handle || `@${memo.creatorName.toLowerCase().replace(/\s+/g, '')}`);
                       setSection('raises_escrow');
                     }}
-                    className="px-3.5 py-1.5 rounded-xl bg-violet-600 text-white text-xs font-semibold"
+                    className="px-4 py-1.5 rounded-full bg-violet-600 text-white text-xs font-semibold"
                   >
                     Prefill Raise Form
                   </button>
@@ -982,7 +1327,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <button
                       type="button"
                       onClick={() => adminUpdateMemoStatus(memo.id, 'reviewed')}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold"
+                      className="px-4 py-1.5 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold"
                     >
                       Mark Reviewed
                     </button>
@@ -1038,13 +1383,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             )}
           </div>
 
-          <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl divide-y divide-[#E4DFF2] dark:divide-[#2A174A] overflow-hidden">
-            {syncLogs.length === 0 ? (
-              <div className="p-6 text-center text-xs text-[#645582] dark:text-[#A99BC8]">
-                No pipeline runs recorded yet.
-              </div>
-            ) : (
-              syncLogs.map((log) => (
+          {syncLogs.length === 0 ? (
+            <div className="py-8 text-center text-xs text-[#645582] dark:text-[#A99BC8]">
+              No pipeline runs recorded yet.
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl divide-y divide-[#E4DFF2] dark:divide-[#2A174A] overflow-hidden">
+              {syncLogs.map((log) => (
                 <div key={log.id} className="p-4 flex items-center justify-between gap-3 text-xs">
                   <div className="min-w-0">
                     <div className="font-semibold text-[#11081F] dark:text-[#F8F7FC] truncate">
@@ -1053,7 +1398,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div className="text-[#645582] dark:text-[#A99BC8] truncate mt-0.5">{log.message}</div>
                   </div>
                   <span
-                    className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold capitalize shrink-0 ${
+                    className={`px-3 py-1 rounded-full text-[11px] font-semibold capitalize shrink-0 ${
                       log.status === 'success'
                         ? 'bg-emerald-500/15 text-emerald-500'
                         : log.status === 'unconfigured'
@@ -1064,9 +1409,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {log.status}
                   </span>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

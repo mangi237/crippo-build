@@ -319,13 +319,127 @@ async function fetchTikTokPosts(): Promise<{ provider: string; posts: NewsPost[]
   };
 }
 
-export async function runUnifiedSocialSync(): Promise<{
+function decodeXmlEntities(str: string): string {
+  return str
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractTag(block: string, tag: string): string {
+  const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
+  const match = block.match(regex);
+  return match ? decodeXmlEntities(match[1]) : '';
+}
+
+function extractLink(block: string): string {
+  const linkTag = extractTag(block, 'link');
+  if (linkTag && linkTag.startsWith('http')) return linkTag;
+  const hrefMatch = block.match(/<link[^>]+href=["']([^"']+)["'][^>]*>/i);
+  return hrefMatch ? hrefMatch[1] : '';
+}
+
+export async function fetchLocalBlogRssPosts(customUrls?: string[]): Promise<{
+  provider: string;
+  posts: NewsPost[];
+  sourcesChecked: string[];
+  note?: string;
+}> {
+  const envUrls = (process.env.LOCAL_BLOG_RSS_URLS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const feedUrls = Array.from(
+    new Set([...(customUrls || []).map((u) => u.trim()).filter(Boolean), ...envUrls])
+  ).slice(0, 8);
+
+  if (feedUrls.length === 0) {
+    return {
+      provider: 'Local Blog RSS (Unconfigured)',
+      posts: [],
+      sourcesChecked: [],
+      note: 'Provide RSS/Atom feed URLs in LOCAL_BLOG_RSS_URLS or pass blogUrls in the agent request.',
+    };
+  }
+
+  const collected: NewsPost[] = [];
+  const checked: string[] = [];
+
+  for (const url of feedUrls) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'CrippoMarketAgent/1.0 (+https://crippo.cm)' },
+      });
+      clearTimeout(timeout);
+      if (!res.ok) continue;
+
+      const xml = await res.text();
+      checked.push(url);
+
+      let hostLabel = 'Local Blog';
+      try {
+        hostLabel = new URL(url).hostname.replace(/^www\./, '');
+      } catch {
+        // ignore URL parse error
+      }
+
+      const feedTitle = extractTag(xml.split(/<item|<entry/i)[0] || '', 'title') || hostLabel;
+      const items = xml.match(/<item[\s\S]*?<\/item>|<entry[\s\S]*?<\/entry>/gi) || [];
+
+      for (const item of items.slice(0, 8)) {
+        const title = extractTag(item, 'title');
+        const link = extractLink(item);
+        const pubDate = extractTag(item, 'pubDate') || extractTag(item, 'published') || extractTag(item, 'updated');
+        if (!title) continue;
+
+        const headline = title.slice(0, 220);
+        collected.push({
+          id: makeStableId('rss', link || `${hostLabel}:${headline}`),
+          sourcePlatform: 'editorial',
+          sourceName: feedTitle.slice(0, 110),
+          headline,
+          externalUrl: link || url,
+          category: classifyByKeywords(headline, 2500),
+          city: /yaound/i.test(headline)
+            ? 'Yaoundé'
+            : /buea|molyko|limbe/i.test(headline)
+              ? 'Buea'
+              : 'Douala',
+          engagementScore: 2500,
+          publishedAt: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
+          syncedAt: new Date().toISOString(),
+        });
+      }
+    } catch {
+      // Skip unreachable RSS source gracefully
+    }
+  }
+
+  return {
+    provider: checked.length > 0 ? `Local RSS (${checked.length})` : 'Local Blog RSS',
+    posts: collected,
+    sourcesChecked: checked,
+    note: checked.length === 0 ? 'None of the configured RSS URLs responded with valid XML items.' : undefined,
+  };
+}
+
+export async function runUnifiedSocialSync(customBlogUrls?: string[]): Promise<{
   status: 'success' | 'unconfigured' | 'error';
   posts: NewsPost[];
   providers: string[];
   notes: string[];
 }> {
-  const [fbResult, ttResult] = await Promise.all([
+  const [fbResult, ttResult, rssResult] = await Promise.all([
     fetchFacebookPosts().catch((err) => ({
       provider: 'Facebook (Error)',
       posts: [] as NewsPost[],
@@ -336,11 +450,17 @@ export async function runUnifiedSocialSync(): Promise<{
       posts: [] as NewsPost[],
       note: err instanceof Error ? err.message : 'TikTok fetch failed',
     })),
+    fetchLocalBlogRssPosts(customBlogUrls).catch((err) => ({
+      provider: 'Local Blog RSS (Error)',
+      posts: [] as NewsPost[],
+      sourcesChecked: [] as string[],
+      note: err instanceof Error ? err.message : 'RSS fetch failed',
+    })),
   ]);
 
-  const combined = [...fbResult.posts, ...ttResult.posts];
+  const combined = [...rssResult.posts, ...fbResult.posts, ...ttResult.posts];
   const classified = await classifyBatchWithGemini(combined);
-  const notes = [fbResult.note, ttResult.note].filter((n): n is string => Boolean(n));
+  const notes = [rssResult.note, fbResult.note, ttResult.note].filter((n): n is string => Boolean(n));
 
   const status: 'success' | 'unconfigured' | 'error' =
     classified.length > 0
@@ -352,7 +472,7 @@ export async function runUnifiedSocialSync(): Promise<{
   return {
     status,
     posts: classified,
-    providers: [fbResult.provider, ttResult.provider],
+    providers: [rssResult.provider, fbResult.provider, ttResult.provider],
     notes,
   };
 }

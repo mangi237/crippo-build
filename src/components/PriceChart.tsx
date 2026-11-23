@@ -1,7 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
   Line,
   LineChart,
@@ -79,15 +77,14 @@ export const PriceChart: React.FC<{
   if (chartData.length === 0) return null;
 
   const strokeColor = isPositive ? '#10B981' : '#EF4444';
-  const fillColor = isPositive ? '#10B981' : '#EF4444';
   const catalystPoints = chartData.filter((d) => Boolean(d.catalystTitle));
 
   return (
     <div className="w-full space-y-2.5">
       {selectedMarker && (
-        <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-violet-500/10 border border-violet-500/30 text-xs">
-          <div className="min-w-0">
-            <span className="font-semibold text-violet-400">Catalyst Event: </span>
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-violet-500/40 text-xs">
+          <div className="min-w-0 truncate">
+            <span className="font-semibold text-violet-500">Catalyst Event: </span>
             <span className="text-[#11081F] dark:text-[#F8F7FC]">{selectedMarker.title}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0 tabular-nums">
@@ -110,8 +107,8 @@ export const PriceChart: React.FC<{
 
       <div className={`w-full ${heightClass}`}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 12, left: 0, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(139, 92, 246, 0.14)" vertical={false} />
+          <LineChart data={chartData} margin={{ top: 10, right: 12, left: 0, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2A174A" vertical={false} />
             <XAxis
               dataKey="label"
               tick={{ fontSize: 11, fill: '#9486B5' }}
@@ -131,19 +128,19 @@ export const PriceChart: React.FC<{
               contentStyle={{
                 backgroundColor: '#180D2B',
                 borderColor: '#2A174A',
-                borderRadius: '12px',
+                borderRadius: '16px',
                 color: '#F8F7FC',
                 fontSize: '12px',
               }}
               formatter={(value: unknown) => [formatXAF(Number(value || 0)), 'Share Price']}
             />
-            <Area
+            <Line
               type="monotone"
               dataKey="priceXAF"
               stroke={strokeColor}
               strokeWidth={2.5}
-              fill={fillColor}
-              fillOpacity={0.14}
+              dot={false}
+              activeDot={{ r: 5, fill: strokeColor, stroke: '#0B0514', strokeWidth: 2 }}
               isAnimationActive={false}
             />
             {catalystPoints.map((pt) => (
@@ -167,7 +164,7 @@ export const PriceChart: React.FC<{
                 }}
               />
             ))}
-          </AreaChart>
+          </LineChart>
         </ResponsiveContainer>
       </div>
     </div>

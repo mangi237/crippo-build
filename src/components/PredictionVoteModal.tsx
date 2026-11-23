@@ -72,7 +72,7 @@ export const PredictionVoteModal: React.FC<PredictionVoteModalProps> = ({
           type="button"
           onClick={onClose}
           aria-label="Close prediction trade"
-          className="absolute top-5 right-5 w-9 h-9 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#645582] dark:text-[#A99BC8]"
+          className="absolute top-5 right-5 w-9 h-9 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#645582] dark:text-[#A99BC8]"
         >
           <X className="w-4 h-4" />
         </button>
@@ -89,7 +89,7 @@ export const PredictionVoteModal: React.FC<PredictionVoteModalProps> = ({
           <button
             type="button"
             onClick={() => setSide('YES')}
-            className={`py-3 rounded-xl text-xs font-bold border transition-colors tabular-nums ${
+            className={`py-3 rounded-full text-xs font-bold border transition-colors tabular-nums ${
               side === 'YES'
                 ? 'bg-emerald-500 border-emerald-500 text-white'
                 : 'bg-[#F8F7FC] dark:bg-[#11081F] border-[#E4DFF2] dark:border-[#2A174A] text-emerald-500'
@@ -100,7 +100,7 @@ export const PredictionVoteModal: React.FC<PredictionVoteModalProps> = ({
           <button
             type="button"
             onClick={() => setSide('NO')}
-            className={`py-3 rounded-xl text-xs font-bold border transition-colors tabular-nums ${
+            className={`py-3 rounded-full text-xs font-bold border transition-colors tabular-nums ${
               side === 'NO'
                 ? 'bg-red-500 border-red-500 text-white'
                 : 'bg-[#F8F7FC] dark:bg-[#11081F] border-[#E4DFF2] dark:border-[#2A174A] text-red-500'
@@ -122,7 +122,7 @@ export const PredictionVoteModal: React.FC<PredictionVoteModalProps> = ({
             <button
               type="button"
               onClick={() => setShares((s) => Math.max(1, s - 1))}
-              className="w-9 h-9 rounded-xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center"
+              className="w-9 h-9 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center"
             >
               <Minus className="w-4 h-4" />
             </button>
@@ -130,7 +130,7 @@ export const PredictionVoteModal: React.FC<PredictionVoteModalProps> = ({
             <button
               type="button"
               onClick={() => setShares((s) => s + 1)}
-              className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center"
+              className="w-9 h-9 rounded-full bg-violet-600 text-white flex items-center justify-center"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -144,7 +144,7 @@ export const PredictionVoteModal: React.FC<PredictionVoteModalProps> = ({
               key={m}
               type="button"
               onClick={() => setPaymentMethod(m)}
-              className={`py-2 rounded-xl text-[11px] font-semibold border ${
+              className={`py-2 rounded-full text-[11px] font-semibold border ${
                 paymentMethod === m
                   ? 'bg-violet-600 border-violet-600 text-white'
                   : 'bg-[#F8F7FC] dark:bg-[#11081F] border-[#E4DFF2] dark:border-[#2A174A] text-[#645582] dark:text-[#A99BC8]'
@@ -156,12 +156,12 @@ export const PredictionVoteModal: React.FC<PredictionVoteModalProps> = ({
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-500">
+          <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-xs text-red-500">
             {error}
           </div>
         )}
         {successMsg && (
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-500">
+          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-500">
             {successMsg}
           </div>
         )}
@@ -170,7 +170,7 @@ export const PredictionVoteModal: React.FC<PredictionVoteModalProps> = ({
           type="button"
           disabled={submitting}
           onClick={handleConfirm}
-          className="w-full py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-bold"
+          className="w-full py-3.5 rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-bold"
         >
           {submitting ? 'Confirming...' : `${side === 'YES' ? t.voteYes : t.voteNo} · ${formatXAF(totalCostXAF)}`}
         </button>

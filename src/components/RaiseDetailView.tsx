@@ -27,6 +27,7 @@ interface RaiseDetailViewProps {
   lang: AppLang;
   onBack: () => void;
   onRequireAuth: () => void;
+  onClaim?: (creator: Creator) => void;
 }
 
 type Timeframe = '1H' | '24H' | '7D' | 'ALL';
@@ -38,6 +39,7 @@ export const RaiseDetailView: React.FC<RaiseDetailViewProps> = ({
   lang,
   onBack,
   onRequireAuth,
+  onClaim,
 }) => {
   const t = translations[lang];
   const [timeframe, setTimeframe] = useState<Timeframe>('ALL');
@@ -121,23 +123,32 @@ export const RaiseDetailView: React.FC<RaiseDetailViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Back Bar */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC] hover:border-violet-500"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC] hover:border-violet-500"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>{t.markets}</span>
         </button>
 
-        <div className="flex items-center gap-2 text-xs text-[#645582] dark:text-[#A99BC8]">
+        <div className="flex items-center gap-3 text-xs text-[#645582] dark:text-[#A99BC8]">
           <span>{creator.category}</span>
           {creator.closesAt && (
             <>
               <span aria-hidden="true">·</span>
               <span className="font-mono tabular-nums">{formatTimeRemaining(creator.closesAt)}</span>
             </>
+          )}
+          {creator.claimStatus === 'UNCLAIMED' && onClaim && (
+            <button
+              type="button"
+              onClick={() => onClaim(creator)}
+              className="px-4 py-2 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
+            >
+              {lang === 'FR' ? 'Réclamer ce profil créateur' : 'Are you this creator? Claim Profile'}
+            </button>
           )}
         </div>
       </div>
@@ -425,7 +436,7 @@ export const RaiseDetailView: React.FC<RaiseDetailViewProps> = ({
               type="button"
               disabled={submitting}
               onClick={handleConfirmOrder}
-              className={`w-full py-3.5 px-5 rounded-2xl text-white text-sm font-bold transition-colors disabled:opacity-50 ${
+              className={`w-full py-4 px-5 rounded-full text-white text-sm font-bold transition-colors disabled:opacity-50 ${
                 side === 'BUY'
                   ? 'bg-violet-600 hover:bg-violet-500'
                   : 'bg-red-500 hover:bg-red-600'

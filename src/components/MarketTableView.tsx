@@ -16,7 +16,7 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
   const t = translations[lang];
 
   return (
-    <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl overflow-x-auto">
+    <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl overflow-x-auto">
       <table className="w-full text-left border-collapse min-w-[680px]">
         <thead>
           <tr className="border-b border-[#E4DFF2] dark:border-[#2A174A] text-[11px] font-semibold text-[#645582] dark:text-[#A99BC8]">
@@ -38,7 +38,7 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
               <tr
                 key={c.id}
                 onClick={() => onTrade(c, 'BUY')}
-                className="cursor-pointer hover:bg-[#F8F7FC] dark:hover:bg-[#11081F]/70 transition-colors"
+                className="cursor-pointer hover:bg-[#F8F7FC] dark:hover:bg-[#11081F] transition-colors"
               >
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -47,10 +47,10 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
                         src={c.avatarUrl}
                         alt={c.name}
                         referrerPolicy="no-referrer"
-                        className="w-8 h-8 rounded-lg object-cover shrink-0"
+                        className="w-8 h-8 rounded-full object-cover shrink-0"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-lg bg-violet-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-violet-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
                         {c.name.slice(0, 2).toUpperCase()}
                       </div>
                     )}
@@ -100,7 +100,7 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
                         e.stopPropagation();
                         onTrade(c, 'BUY');
                       }}
-                      className="px-2.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-semibold"
+                      className="px-3.5 py-1.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-semibold"
                     >
                       {t.buy}
                     </button>
@@ -110,7 +110,7 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
                         e.stopPropagation();
                         onTrade(c, 'SELL');
                       }}
-                      className="px-2.5 py-1.5 rounded-lg bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-[#11081F] dark:text-[#F8F7FC] text-[11px] font-semibold"
+                      className="px-3.5 py-1.5 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-[#11081F] dark:text-[#F8F7FC] text-[11px] font-semibold"
                     >
                       {t.sell}
                     </button>

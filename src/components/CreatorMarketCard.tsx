@@ -10,18 +10,24 @@ interface CreatorMarketCardProps {
   creator: Creator;
   lang?: AppLang;
   onTrade: (creator: Creator, initialSide?: 'BUY' | 'SELL') => void;
+  onClaim?: (creator: Creator) => void;
 }
 
 export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
   creator,
   lang = 'EN',
   onTrade,
+  onClaim,
 }) => {
   const t = translations[lang];
   const isUp = creator.priceChangePct >= 0;
+  const isUnclaimed = creator.claimStatus === 'UNCLAIMED';
   const totalShares = creator.totalShares || 1000;
   const sharesRemaining = creator.sharesRemaining ?? totalShares;
-  const targetRaise = creator.grossTargetXAF || creator.targetRaiseXAF || totalShares * (creator.baseSharePriceXAF || creator.sharePriceXAF);
+  const targetRaise =
+    creator.grossTargetXAF ||
+    creator.targetRaiseXAF ||
+    totalShares * (creator.baseSharePriceXAF || creator.sharePriceXAF);
   const raised = creator.totalRaisedXAF || 0;
   const progressPct = Math.min(100, Math.max(2, Math.round((raised / Math.max(1, targetRaise)) * 100)));
 
@@ -40,7 +46,7 @@ export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
   return (
     <div
       onClick={() => onTrade(creator, 'BUY')}
-      className="cursor-pointer bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] hover:border-violet-500/70 rounded-2xl p-4 sm:p-5 space-y-4 transition-colors"
+      className="cursor-pointer bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] hover:border-violet-500/70 rounded-3xl p-5 space-y-4 transition-colors"
     >
       {/* Top Header: Raise Title + Category + Share Price & Sparkline */}
       <div className="flex items-start justify-between gap-3">
@@ -50,10 +56,10 @@ export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
               src={creator.avatarUrl}
               alt={creator.name}
               referrerPolicy="no-referrer"
-              className="w-11 h-11 rounded-xl object-cover bg-violet-500/15 shrink-0"
+              className="w-12 h-12 rounded-full object-cover bg-[#F8F7FC] dark:bg-[#11081F] shrink-0"
             />
           ) : (
-            <div className="w-11 h-11 rounded-xl bg-violet-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-full bg-violet-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
               {initials}
             </div>
           )}
@@ -61,6 +67,7 @@ export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
           <div className="min-w-0">
             <div className="text-[11px] font-semibold text-violet-600 dark:text-violet-400 truncate">
               {creator.category}
+              {isUnclaimed ? (lang === 'FR' ? ' · À réclamer' : ' · Unclaimed Directory') : ''}
             </div>
             <h3 className="text-sm sm:text-base font-bold text-[#11081F] dark:text-[#F8F7FC] truncate">
               {displayTitle}
@@ -132,28 +139,41 @@ export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
         </div>
       </div>
 
-      {/* Actions: Full-width Join Raise on mobile, Buy + Sell on desktop */}
+      {/* Actions */}
       <div className="flex items-center gap-2 pt-1">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onTrade(creator, 'BUY');
-          }}
-          className="flex-1 py-2.5 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors whitespace-nowrap"
-        >
-          <span className="sm:hidden">{t.joinRaise}</span>
-          <span className="hidden sm:inline">{t.buy}</span>
-        </button>
+        {isUnclaimed && onClaim ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClaim(creator);
+            }}
+            className="flex-1 py-2.5 px-4 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors whitespace-nowrap"
+          >
+            {lang === 'FR' ? 'Réclamer ce profil' : 'Claim Profile'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTrade(creator, 'BUY');
+            }}
+            className="flex-1 py-2.5 px-4 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors whitespace-nowrap"
+          >
+            <span className="sm:hidden">{t.joinRaise}</span>
+            <span className="hidden sm:inline">{t.buy}</span>
+          </button>
+        )}
 
-        {creator.status !== 'ENDED' && (
+        {creator.status !== 'ENDED' && !isUnclaimed && (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onTrade(creator, 'SELL');
             }}
-            className="hidden sm:inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] hover:border-red-500/60 text-[#11081F] dark:text-[#F8F7FC] text-xs font-semibold transition-colors whitespace-nowrap"
+            className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] hover:border-red-500/60 text-[#11081F] dark:text-[#F8F7FC] text-xs font-semibold transition-colors whitespace-nowrap"
           >
             {t.sell}
           </button>
