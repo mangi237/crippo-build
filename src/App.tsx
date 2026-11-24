@@ -52,12 +52,12 @@ import { RaceDetail } from './components/RaceDetail';
 import { CreatorDossier } from './components/CreatorDossier';
 import { PredictionVoteModal } from './components/PredictionVoteModal';
 import { OrderExecution } from './components/OrderExecution';
-import { NotificationsDrawer, WalletModal } from './components/WalletAndNotifications';
+import { NotificationsDrawer, WalletModal } from './components/WalletAndAlerts';
 import { PortfolioView } from './components/PortfolioView';
 import { RaiseQuestionnaire } from './components/RaiseQuestionnaire';
 import { CreatorKyc } from './components/CreatorKyc';
-import { SearchView } from './components/SearchView';
-import { ProfileView } from './components/ProfileView';
+import { SearchScreen } from './components/SearchScreen';
+import { AccountProfile } from './components/AccountProfile';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AuthModal } from './components/AuthModal';
 import { OnboardingScreen, SplashScreen } from './components/SplashAndOnboarding';
@@ -505,8 +505,8 @@ export default function App() {
             />
           </div>
         ) : activeTab === 'search' ? (
-          <div className="max-w-4xl mx-auto">
-            <SearchView
+          <div className="max-w-3xl mx-auto">
+            <SearchScreen
               user={user}
               creators={creators}
               predictions={predictions}
@@ -519,27 +519,26 @@ export default function App() {
           </div>
         ) : activeTab === 'profile' ? (
           <div className="max-w-3xl mx-auto">
-            <ProfileView
+            <AccountProfile
               user={user}
               creators={creators}
               trades={trades}
               predictionVotes={predictionVotes}
               walletTxs={walletTxs}
-              brandCampaigns={brandCampaigns}
-              myBrandApplications={myBrandApplications}
               myApplications={myApplications}
+              myBrandApplications={myBrandApplications}
               claimTargetCreator={claimTargetCreator}
               onClearClaimTarget={() => setClaimTargetCreator(null)}
               lang={lang}
               onToggleLang={() => setLang((l) => (l === 'EN' ? 'FR' : 'EN'))}
-              isDark={isDark}
-              onToggleTheme={() => setIsDark((d) => !d)}
               onReplayOnboarding={() => setShowOnboarding(true)}
               onSelectCreator={(c) => openRaise(c, 'BUY')}
               onOpenPortfolio={() => setActiveTab('portfolio')}
+              onOpenWallet={() => setWalletOpen(true)}
               onRequireAuth={() => setAuthModalOpen(true)}
               onOpenAdmin={() => navigateAdmin(true)}
-              onOpenWallet={() => setWalletOpen(true)}
+              onStartRaise={() => setStudioView('raise')}
+              onVerifyIdentity={() => setStudioView('kyc')}
             />
           </div>
         ) : activeTab === 'predictions' ? (
