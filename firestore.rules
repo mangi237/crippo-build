@@ -531,11 +531,17 @@ service cloud.firestore {
     match /creator_applications/{appId} {
       allow get: if isValidId(appId) && (isOwner(existing().uid) || isAdmin());
       allow list: if isSignedIn() && (existing().uid == request.auth.uid || isBootstrappedAdmin());
+      // Raise questionnaires need a verified creator. Profile-claim applications
+      // (claimCreatorId set) are allowed for any signed-in user so they can verify.
       allow create: if isValidId(appId)
         && isSignedIn()
         && isValidApplication(incoming(), appId)
         && incoming().uid == request.auth.uid
-        && incoming().status == 'pending';
+        && incoming().status == 'pending'
+        && (
+          (incoming().keys().hasAny(['claimCreatorId']) && incoming().claimCreatorId is string)
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isVerifiedCreator == true
+        );
       allow update: if isValidId(appId)
         && isAdmin()
         && isValidApplication(incoming(), appId)

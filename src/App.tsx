@@ -56,6 +56,7 @@ import { NotificationsDrawer, WalletModal } from './components/WalletAndAlerts';
 import { PortfolioView } from './components/PortfolioView';
 import { RaiseQuestionnaire } from './components/RaiseQuestionnaire';
 import { CreatorKyc } from './components/CreatorKyc';
+import { BrandApplySheet } from './components/BrandApplySheet';
 import { SearchScreen } from './components/SearchScreen';
 import { AccountProfile } from './components/AccountProfile';
 import { AdminConsole } from './components/AdminConsole';
@@ -130,6 +131,16 @@ export default function App() {
   const [walletOpen, setWalletOpen] = useState(false);
   const [studioView, setStudioView] = useState<'raise' | 'kyc' | null>(null);
   const [dossierCreator, setDossierCreator] = useState<Creator | null>(null);
+  const [brandApplyCampaign, setBrandApplyCampaign] = useState<BrandCampaign | null>(null);
+  const myVerifiedCreators = useMemo(
+    () => (user ? creators.filter((c) => c.claimedByUid === user.uid && c.claimStatus === 'CLAIMED') : []),
+    [creators, user]
+  );
+  // Raises and brand partnerships are for verified creators only; everyone else goes through verification first.
+  const canRaise = !!user && user.isVerifiedCreator;
+  function startRaise() {
+    setStudioView(canRaise ? 'raise' : 'kyc');
+  }
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const t = translations[lang];
@@ -537,7 +548,7 @@ export default function App() {
               onOpenWallet={() => setWalletOpen(true)}
               onRequireAuth={() => setAuthModalOpen(true)}
               onOpenAdmin={() => navigateAdmin(true)}
-              onStartRaise={() => setStudioView('raise')}
+              onStartRaise={startRaise}
               onVerifyIdentity={() => setStudioView('kyc')}
             />
           </div>
@@ -588,10 +599,10 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStudioView('raise')}
+                  onClick={startRaise}
                   className="px-4 py-2 rounded-[4px] bg-[#059669] hover:bg-[#047857] text-white text-xs font-semibold"
                 >
-                  {lang === 'FR' ? 'Lancer une course' : 'Start a raise'}
+                  {canRaise ? (lang === 'FR' ? 'Lancer une course' : 'Start a raise') : lang === 'FR' ? 'Vérifier pour lever' : 'Verify to raise'}
                 </button>
               </div>
               <div className="hidden sm:inline-flex items-center p-1 rounded-[8px] bg-white shadow-sm">
@@ -639,12 +650,10 @@ export default function App() {
               <BrandCampaignList
                 campaigns={brandCampaigns}
                 lang={lang}
-                onApply={() => {
+                onApply={(camp) => {
                   if (!user) setAuthModalOpen(true);
-                  else {
-                    setActiveTab('profile');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }
+                  else if (!canRaise) setStudioView('kyc');
+                  else setBrandApplyCampaign(camp);
                 }}
               />
             ) : filteredCreators.length === 0 ? (
@@ -875,6 +884,15 @@ export default function App() {
         }}
       />
 
+      <BrandApplySheet
+        campaign={brandApplyCampaign}
+        user={user}
+        myCreators={myVerifiedCreators}
+        lang={lang}
+        onClose={() => setBrandApplyCampaign(null)}
+        onDone={() => setBrandApplyCampaign(null)}
+      />
+
       <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
@@ -942,7 +960,7 @@ function BrandCampaignList({
 }: {
   campaigns: BrandCampaign[];
   lang: AppLang;
-  onApply: () => void;
+  onApply: (campaign: BrandCampaign) => void;
 }) {
   if (campaigns.length === 0) {
     return (
@@ -972,7 +990,7 @@ function BrandCampaignList({
               <span className="text-[#64748B]">Pool: </span>
               <strong className="num text-[#0F172A]">{formatXAF(camp.budgetXAF)}</strong>
             </div>
-            <button type="button" onClick={onApply} className="px-4 py-1.5 rounded-full bg-[#1E0B36] text-white text-[11px] font-semibold">
+            <button type="button" onClick={() => onApply(camp)} className="px-4 py-1.5 rounded-full bg-[#1E0B36] text-white text-[11px] font-semibold">
               Apply as Creator
             </button>
           </div>
