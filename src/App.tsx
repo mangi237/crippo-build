@@ -48,7 +48,8 @@ import { FeaturedHeroCarousel } from './components/FeaturedHeroCarousel';
 import { CreatorMarketCard } from './components/CreatorMarketCard';
 import { MarketTableView } from './components/MarketTableView';
 import { PredictionMarketCard } from './components/PredictionMarketCard';
-import { RaiseDetailView } from './components/RaiseDetailView';
+import { RaceDetail } from './components/RaceDetail';
+import { CreatorDossier } from './components/CreatorDossier';
 import { PredictionVoteModal } from './components/PredictionVoteModal';
 import { OrderExecution } from './components/OrderExecution';
 import { NotificationsDrawer, WalletModal } from './components/WalletAndNotifications';
@@ -128,6 +129,7 @@ export default function App() {
   } | null>(null);
   const [walletOpen, setWalletOpen] = useState(false);
   const [studioView, setStudioView] = useState<'raise' | 'kyc' | null>(null);
+  const [dossierCreator, setDossierCreator] = useState<Creator | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const t = translations[lang];
@@ -141,6 +143,7 @@ export default function App() {
   // Leaving a tab closes any open studio screen (raise questionnaire or KYC).
   useEffect(() => {
     setStudioView(null);
+    setDossierCreator(null);
   }, [activeTab]);
 
   // Sync Tailwind dark class on <html>
@@ -445,13 +448,27 @@ export default function App() {
             onRequireAuth={() => setAuthModalOpen(true)}
           />
         ) : liveSelectedRaiseCreator ? (
-          <RaiseDetailView
+          <RaceDetail
             creator={liveSelectedRaiseCreator}
-            initialSide={selectedRaise?.side}
             user={user}
             lang={lang}
             onBack={() => setSelectedRaise(null)}
             onRequireAuth={() => setAuthModalOpen(true)}
+            onClaim={handleClaimCreator}
+            onOpenDossier={(c) => {
+              setSelectedRaise(null);
+              setDossierCreator(c);
+            }}
+          />
+        ) : dossierCreator ? (
+          <CreatorDossier
+            creator={creators.find((c) => c.id === dossierCreator.id) || dossierCreator}
+            lang={lang}
+            onBack={() => setDossierCreator(null)}
+            onBuy={(c) => {
+              setDossierCreator(null);
+              openRaise(c, 'BUY');
+            }}
             onClaim={handleClaimCreator}
           />
         ) : studioView === 'raise' ? (
