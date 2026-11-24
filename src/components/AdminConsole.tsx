@@ -11,6 +11,7 @@ import type {
   MemoRequest,
   PredictionMarket,
   SyncLog,
+  Label,
   UnderwritingResult,
   UserProfile,
 } from '../types/crippo';
@@ -35,6 +36,8 @@ import {
   subscribeAllMemoRequests,
   subscribeBrandCampaigns,
   subscribeSyncLogs,
+  subscribeAllLabels,
+  adminReviewLabel,
   verifyClaimBioCodeOnServer,
 } from '../services/firestoreService';
 import { formatXAF } from '../utils/format';
@@ -46,11 +49,12 @@ interface AdminConsoleProps {
   onExit: () => void;
 }
 
-type Section = 'overview' | 'applications' | 'agents' | 'raises' | 'predictions' | 'brands' | 'sync';
+type Section = 'overview' | 'applications' | 'labels' | 'agents' | 'raises' | 'predictions' | 'brands' | 'sync';
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'applications', label: 'Applications' },
+  { id: 'labels', label: 'Labels' },
   { id: 'agents', label: 'Agents & pulse' },
   { id: 'raises', label: 'Raises & escrow' },
   { id: 'predictions', label: 'Predictions' },
@@ -78,6 +82,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ user, creators, pred
   const [busyId, setBusyId] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [labels, setLabels] = useState<Label[]>([]);
   const [bootstrapping, setBootstrapping] = useState(false);
 
   // applications
@@ -141,6 +146,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ user, creators, pred
     const unsubMemos = subscribeAllMemoRequests(setMemos);
     const unsubBrands = subscribeBrandCampaigns(setCampaigns);
     const unsubLogs = subscribeSyncLogs(setSyncLogs);
+    const unsubLabels = subscribeAllLabels(setLabels);
     fetchAggregatorStatus().then(setAggStatus).catch(() => {});
     return () => {
       unsubApps();
@@ -148,6 +154,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ user, creators, pred
       unsubMemos();
       unsubBrands();
       unsubLogs();
+      unsubLabels();
     };
   }, [user?.admin]);
 
@@ -485,6 +492,30 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ user, creators, pred
               </div>
             );
           })}
+        </div>
+      )}
+
+      {section === 'labels' && (
+        <div className="space-y-3">
+          {labels.length === 0 && <p className="text-xs text-[#64748B]">No labels registered yet.</p>}
+          {labels.map((l) => (
+            <div key={l.id} className="card p-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-display font-semibold">{l.name}</p>
+                <p className="text-xs text-[#64748B]">{l.country}{l.rccmNumber ? ` · RCCM ${l.rccmNumber}` : ''} · {new Date(l.createdAt).toLocaleDateString()}</p>
+                <p className="text-xs text-[#64748B] line-clamp-2 mt-1">{l.description}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`label-xs px-2.5 py-1 rounded-full ${l.status === 'approved' ? 'bg-[#059669]/10 text-[#059669]' : l.status === 'rejected' ? 'bg-[#DC2626]/10 text-[#DC2626]' : 'bg-[#6C2BD9]/10 text-[#6C2BD9]'}`}>{l.status}</span>
+                {l.status === 'pending' && (
+                  <>
+                    <button type="button" onClick={() => run('Label', async () => { await adminReviewLabel(l.id, 'approved'); return `${l.name} approved.`; })} className="px-3 py-1.5 rounded-[4px] bg-[#059669] text-white text-xs font-semibold">Approve</button>
+                    <button type="button" onClick={() => run('Label', async () => { await adminReviewLabel(l.id, 'rejected'); return `${l.name} rejected.`; })} className="px-3 py-1.5 rounded-[4px] bg-[#DC2626] text-white text-xs font-semibold">Reject</button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

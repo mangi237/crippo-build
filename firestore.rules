@@ -83,9 +83,12 @@ service cloud.firestore {
           'tradingVolumeXAF', 'baseSharePriceXAF', 'sharePriceXAF', 'priceChangePct',
           'sparkline', 'priceHistory', 'totalRaisedXAF', 'targetRaiseXAF', 'revSharePct',
           'roiDurationMonths', 'closesAt', 'isVerified', 'milestonesCompleted',
-          'createdAt', 'updatedAt'
+          'bio', 'genres', 'activeSinceYear', 'websiteUrl', 'ageVisible', 'birthYear',
+          'labelId', 'labelName', 'createdAt', 'updatedAt'
         ])
         && data.id == creatorId
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 2000))
+        && (!('websiteUrl' in data) || data.websiteUrl == null || (data.websiteUrl is string && data.websiteUrl.size() <= 300))
         && isValidId(data.ownerUid)
         && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
         && data.handle is string && data.handle.size() >= 1 && data.handle.size() <= 80
@@ -422,8 +425,76 @@ service cloud.firestore {
             ])
             && incoming().tradingVolumeXAF >= existing().tradingVolumeXAF
           )
+          || (
+            isSignedIn()
+            && existing().claimedByUid == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'bio', 'genres', 'activeSinceYear', 'websiteUrl', 'ageVisible', 'birthYear', 'updatedAt'
+            ])
+          )
+          || (
+            isSignedIn()
+            && existing().claimedByUid == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['labelId', 'labelName', 'updatedAt'])
+            && (
+              incoming().labelId == null
+              || get(/databases/$(database)/documents/label_invitations/$(incoming().labelId + '_' + creatorId)).data.status == 'accepted'
+            )
+          )
+          || (
+            isSignedIn()
+            && existing().labelId != null
+            && get(/databases/$(database)/documents/labels/$(existing().labelId)).data.ownerUid == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['labelId', 'labelName', 'updatedAt'])
+            && incoming().labelId == null
+          )
         );
       allow delete: if isValidId(creatorId) && isAdmin();
+    }
+
+    // Labels: public directory. Owner creates as pending; admin approves.
+    match /labels/{labelId} {
+      allow get, list: if true;
+      allow create: if isValidId(labelId)
+        && isSignedIn()
+        && incoming().ownerUid == request.auth.uid
+        && incoming().status == 'pending'
+        && incoming().name is string && incoming().name.size() >= 2 && incoming().name.size() <= 120
+        && incoming().country is string && incoming().country.size() <= 60
+        && incoming().description is string && incoming().description.size() <= 2000;
+      allow update: if isValidId(labelId)
+        && (
+          isAdmin()
+          || (
+            isSignedIn()
+            && existing().ownerUid == request.auth.uid
+            && incoming().status == existing().status
+            && incoming().ownerUid == existing().ownerUid
+          )
+        );
+      allow delete: if isAdmin();
+    }
+
+    // Label invitations: a label invites a verified creator; only the creator can accept or decline.
+    match /label_invitations/{inviteId} {
+      allow get: if isValidId(inviteId) && (isSignedIn() && (existing().labelOwnerUid == request.auth.uid || existing().creatorUid == request.auth.uid) || isAdmin());
+      allow list: if isSignedIn();
+      allow create: if isValidId(inviteId)
+        && isSignedIn()
+        && incoming().labelOwnerUid == request.auth.uid
+        && incoming().status == 'pending'
+        && inviteId == incoming().labelId + '_' + incoming().creatorId
+        && get(/databases/$(database)/documents/labels/$(incoming().labelId)).data.ownerUid == request.auth.uid
+        && get(/databases/$(database)/documents/labels/$(incoming().labelId)).data.status == 'approved'
+        && get(/databases/$(database)/documents/creators/$(incoming().creatorId)).data.claimedByUid == incoming().creatorUid
+        && get(/databases/$(database)/documents/users/$(incoming().creatorUid)).data.isVerifiedCreator == true;
+      allow update: if isValidId(inviteId)
+        && isSignedIn()
+        && existing().creatorUid == request.auth.uid
+        && existing().status == 'pending'
+        && incoming().status in ['accepted', 'declined']
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if isAdmin();
     }
 
     // Yes/No Prediction Markets (Public read, signed-in trade pool update, admin create/resolve)

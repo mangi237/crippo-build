@@ -78,11 +78,26 @@ export const CreatorDossier: React.FC<CreatorDossierProps> = ({ creator, lang, o
         )}
       </div>
 
+      {/* Lead (biography) */}
+      {creator.bio && (
+        <section className="card p-5 space-y-2">
+          <h2 className="font-display text-base font-semibold">{isFr ? 'Biographie' : 'Biography'}</h2>
+          <p className="text-sm leading-relaxed whitespace-pre-line">{creator.bio}</p>
+        </section>
+      )}
+
       {/* Infobox */}
       <section className="card p-5 space-y-1">
         <h2 className="font-display text-base font-semibold mb-2">{isFr ? 'Fiche' : 'Genesis infobox'}</h2>
         <InfoRow label={isFr ? 'Nom' : 'Name'} value={creator.name} />
         <InfoRow label={isFr ? 'Origine' : 'Origin / base'} value={creator.city || 'Cameroon'} />
+        {creator.labelName && <InfoRow label="Label" value={creator.labelName} />}
+        {creator.ageVisible && creator.birthYear ? (
+          <InfoRow label={isFr ? 'Âge' : 'Age'} value={String(new Date().getFullYear() - creator.birthYear)} />
+        ) : null}
+        {creator.genres && creator.genres.length > 0 && <InfoRow label={isFr ? 'Genres' : 'Genres'} value={creator.genres.join(', ')} />}
+        {creator.activeSinceYear && <InfoRow label={isFr ? 'Actif depuis' : 'Active since'} value={String(creator.activeSinceYear)} />}
+        {creator.websiteUrl && <InfoRow label={isFr ? 'Site' : 'Website'} value={creator.websiteUrl} />}
         <InfoRow label={isFr ? 'Valorisation du catalogue' : 'Catalog valuation'} value={formatXAF(creator.targetRaiseXAF ?? creator.grossTargetXAF ?? 0)} />
         <InfoRow label={isFr ? 'Capitalisation totale' : 'Total market cap'} value={formatXAF(creator.sharePriceXAF * (creator.totalShares ?? 0))} />
         <InfoRow label={isFr ? 'Plateforme' : 'Platform'} value={creator.platform || '—'} />

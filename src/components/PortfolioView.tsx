@@ -3,6 +3,7 @@ import { Briefcase, Wallet, ShieldCheck, ArrowRight } from 'lucide-react';
 import type { Creator, Trade, UserProfile } from '../types/crippo';
 import type { AppLang } from '../i18n/translations';
 import { formatXAF } from '../utils/format';
+import { ScreenState } from './ScreenState';
 
 interface PortfolioViewProps {
   user: UserProfile | null;
@@ -74,13 +75,11 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto card p-8 text-center space-y-4">
-        <Briefcase className="w-10 h-10 text-[#6C2BD9] mx-auto" />
-        <p className="font-display text-lg font-semibold">{isFr ? 'Connectez-vous pour voir vos parts' : 'Sign in to see your shares'}</p>
-        <button type="button" onClick={onRequireAuth} className="px-6 py-3 rounded-[4px] bg-[#1E0B36] text-white text-xs font-semibold uppercase tracking-wide">
-          {isFr ? 'Se connecter' : 'Sign in'}
-        </button>
-      </div>
+      <ScreenState
+        title={isFr ? 'Connectez-vous pour voir vos parts' : 'Sign in to see your shares'}
+        actionLabel={isFr ? 'Se connecter' : 'Sign in'}
+        onAction={onRequireAuth}
+      />
     );
   }
 

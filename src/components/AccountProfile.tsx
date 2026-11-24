@@ -5,6 +5,7 @@ import type { BrandApplication, Creator, CreatorApplication, PredictionVote, Tra
 import type { AppLang } from '../i18n/translations';
 import { auth } from '../services/firebase';
 import { formatXAF } from '../utils/format';
+import { ScreenState } from './ScreenState';
 
 interface AccountProfileProps {
   user: UserProfile | null;
@@ -26,6 +27,8 @@ interface AccountProfileProps {
   onOpenAdmin: () => void;
   onStartRaise: () => void;
   onVerifyIdentity: () => void;
+  onOpenCreatorDashboard: () => void;
+  onOpenLabel: () => void;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -59,19 +62,19 @@ export const AccountProfile: React.FC<AccountProfileProps> = ({
   onStartRaise,
   onVerifyIdentity,
   onSelectCreator,
+  onOpenCreatorDashboard,
+  onOpenLabel,
 }) => {
   const isFr = lang === 'FR';
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto card p-8 text-center space-y-4">
-        <ShieldCheck className="w-10 h-10 text-[#6C2BD9] mx-auto" />
-        <p className="font-display text-lg font-semibold">{isFr ? 'Connectez-vous à votre compte' : 'Sign in to your account'}</p>
-        <p className="text-xs text-[#64748B]">{isFr ? 'Portefeuille, parts, vérification et candidatures.' : 'Wallet, shares, verification and applications.'}</p>
-        <button type="button" onClick={onRequireAuth} className="px-6 py-3 rounded-[4px] bg-[#1E0B36] text-white text-xs font-semibold uppercase tracking-wide">
-          {isFr ? 'Se connecter' : 'Sign in'}
-        </button>
-      </div>
+      <ScreenState
+        title={isFr ? 'Connectez-vous à votre compte' : 'Sign in to your account'}
+        body={isFr ? 'Portefeuille, parts, vérification et candidatures.' : 'Wallet, shares, verification and applications.'}
+        actionLabel={isFr ? 'Se connecter' : 'Sign in'}
+        onAction={onRequireAuth}
+      />
     );
   }
 
@@ -131,6 +134,8 @@ export const AccountProfile: React.FC<AccountProfileProps> = ({
 
       {/* Creator actions */}
       <section className="card divide-y divide-[#E2E8F0]">
+        <ActionRow title={isFr ? 'Tableau de bord créateur' : 'Creator dashboard'} subtitle={claimed ? (isFr ? 'Invitations, biographie, profils' : 'Invitations, bio, profiles') : isFr ? 'Disponible après vérification' : 'Available after verification'} onClick={onOpenCreatorDashboard} />
+        <ActionRow title={isFr ? 'Label' : 'Label'} subtitle={isFr ? 'Enregistrer ou gérer votre roster' : 'Register or manage your roster'} onClick={onOpenLabel} />
         <ActionRow icon={<Megaphone className="w-4 h-4" />} title={isFr ? 'Lancer une course' : 'Start a raise'} subtitle={isFr ? 'Questionnaire pré-production' : 'Pre-production questionnaire'} onClick={onStartRaise} />
         <ActionRow icon={<ShieldCheck className="w-4 h-4" />} title={isFr ? 'Vérification d’identité' : 'Identity verification'} subtitle={isFr ? 'KYC, NIU et MoMo' : 'KYC, NIU and MoMo'} onClick={onVerifyIdentity} />
         <ActionRow icon={<Wallet className="w-4 h-4" />} title={isFr ? 'Portefeuille' : 'Wallet'} subtitle={isFr ? 'Dépôts et retraits MoMo' : 'MoMo deposits and withdrawals'} onClick={onOpenWallet} />

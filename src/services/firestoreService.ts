@@ -22,6 +22,8 @@ import type {
   BrandCampaign,
   Creator,
   CreatorApplication,
+  Label,
+  LabelInvitation,
   MemoRequest,
   NewsPost,
   NotificationItem,
@@ -1959,5 +1961,174 @@ export async function adminCommitAgentPulse(params: {
     return { postsCommitted, creatorsRepriced, predictionsOpened };
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, 'news_posts/agent_commit');
+  }
+}
+
+// =========================================================================
+// LABELS, INVITATIONS AND CREATOR BIOS
+// =========================================================================
+
+export function subscribeMyLabel(uid: string, onData: (label: Label | null) => void): Unsubscribe {
+  const q = query(collection(db, 'labels'), where('ownerUid', '==', uid));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const items = snap.docs.map((d) => d.data() as Label).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      onData(items[0] || null);
+    },
+    (err) => handleFirestoreError(err, OperationType.LIST, 'labels')
+  );
+}
+
+export async function createLabel(params: {
+  uid: string;
+  name: string;
+  country: string;
+  description: string;
+  foundedYear?: number;
+  rccmNumber?: string;
+}): Promise<Label> {
+  const id = makeDocId('lbl');
+  const nowIso = new Date().toISOString();
+  const label = stripUndefined<Label>({
+    id,
+    ownerUid: params.uid,
+    name: params.name.trim().slice(0, 120),
+    country: params.country.trim().slice(0, 60),
+    description: params.description.trim().slice(0, 2000),
+    foundedYear: params.foundedYear,
+    rccmNumber: params.rccmNumber?.trim().slice(0, 60),
+    status: 'pending',
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  });
+  try {
+    await setDoc(doc(db, 'labels', id), label);
+    return label;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.CREATE, `labels/${id}`);
+  }
+}
+
+export function subscribeLabelRoster(labelId: string, onData: (creators: Creator[]) => void): Unsubscribe {
+  const q = query(collection(db, 'creators'), where('labelId', '==', labelId));
+  return onSnapshot(
+    q,
+    (snap) => onData(snap.docs.map((d) => d.data() as Creator)),
+    (err) => handleFirestoreError(err, OperationType.LIST, 'creators')
+  );
+}
+
+export function subscribeLabelInvitations(labelId: string, onData: (invites: LabelInvitation[]) => void): Unsubscribe {
+  const q = query(collection(db, 'label_invitations'), where('labelId', '==', labelId));
+  return onSnapshot(
+    q,
+    (snap) => onData(snap.docs.map((d) => d.data() as LabelInvitation).sort((a, b) => b.createdAt.localeCompare(a.createdAt))),
+    (err) => handleFirestoreError(err, OperationType.LIST, 'label_invitations')
+  );
+}
+
+export function subscribeMyInvitations(uid: string, onData: (invites: LabelInvitation[]) => void): Unsubscribe {
+  const q = query(collection(db, 'label_invitations'), where('creatorUid', '==', uid));
+  return onSnapshot(
+    q,
+    (snap) => onData(snap.docs.map((d) => d.data() as LabelInvitation).sort((a, b) => b.createdAt.localeCompare(a.createdAt))),
+    (err) => handleFirestoreError(err, OperationType.LIST, 'label_invitations')
+  );
+}
+
+/** A label invites a verified, claimed creator. The invite id is deterministic so one creator has one invite per label. */
+export async function inviteCreatorToLabel(params: { label: Label; creator: Creator }): Promise<LabelInvitation> {
+  const id = `${params.label.id}_${params.creator.id}`;
+  const nowIso = new Date().toISOString();
+  const invite: LabelInvitation = {
+    id,
+    labelId: params.label.id,
+    labelName: params.label.name,
+    labelOwnerUid: params.label.ownerUid,
+    creatorId: params.creator.id,
+    creatorName: params.creator.name,
+    creatorUid: params.creator.claimedByUid || '',
+    status: 'pending',
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  };
+  try {
+    await setDoc(doc(db, 'label_invitations', id), invite);
+    return invite;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.CREATE, `label_invitations/${id}`);
+  }
+}
+
+/** Creator accepts or declines. Accepting also sets the creator's label on their profile. */
+export async function respondToInvitation(invite: LabelInvitation, accept: boolean): Promise<void> {
+  const nowIso = new Date().toISOString();
+  try {
+    await updateDoc(doc(db, 'label_invitations', invite.id), {
+      status: accept ? 'accepted' : 'declined',
+      updatedAt: nowIso,
+    });
+    if (accept) {
+      await updateDoc(doc(db, 'creators', invite.creatorId), {
+        labelId: invite.labelId,
+        labelName: invite.labelName,
+        updatedAt: nowIso,
+      });
+    }
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, `label_invitations/${invite.id}`);
+  }
+}
+
+/** Label removes a roster creator. */
+export async function removeCreatorFromLabel(creatorId: string): Promise<void> {
+  try {
+    await updateDoc(doc(db, 'creators', creatorId), { labelId: null, labelName: null, updatedAt: new Date().toISOString() });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, `creators/${creatorId}`);
+  }
+}
+
+export interface CreatorBioInput {
+  bio: string;
+  genres: string[];
+  activeSinceYear?: number;
+  websiteUrl?: string;
+  ageVisible: boolean;
+  birthYear?: number;
+}
+
+/** The verified owner edits their public bio. Birth year is stored only while age is visible. */
+export async function updateCreatorBio(creatorId: string, input: CreatorBioInput): Promise<void> {
+  const payload: Record<string, unknown> = {
+    bio: input.bio.trim().slice(0, 2000),
+    genres: input.genres.map((g) => g.trim()).filter(Boolean).slice(0, 6),
+    activeSinceYear: input.activeSinceYear ?? null,
+    websiteUrl: input.websiteUrl?.trim().slice(0, 300) || null,
+    ageVisible: input.ageVisible,
+    birthYear: input.ageVisible && input.birthYear ? input.birthYear : null,
+    updatedAt: new Date().toISOString(),
+  };
+  try {
+    await updateDoc(doc(db, 'creators', creatorId), payload);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, `creators/${creatorId}`);
+  }
+}
+
+export function subscribeAllLabels(onData: (labels: Label[]) => void): Unsubscribe {
+  return onSnapshot(
+    collection(db, 'labels'),
+    (snap) => onData(snap.docs.map((d) => d.data() as Label).sort((a, b) => b.createdAt.localeCompare(a.createdAt))),
+    (err) => handleFirestoreError(err, OperationType.LIST, 'labels')
+  );
+}
+
+export async function adminReviewLabel(labelId: string, status: 'approved' | 'rejected'): Promise<void> {
+  try {
+    await updateDoc(doc(db, 'labels', labelId), { status, updatedAt: new Date().toISOString() });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.UPDATE, `labels/${labelId}`);
   }
 }

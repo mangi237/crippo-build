@@ -57,6 +57,8 @@ import { PortfolioView } from './components/PortfolioView';
 import { RaiseQuestionnaire } from './components/RaiseQuestionnaire';
 import { CreatorKyc } from './components/CreatorKyc';
 import { BrandApplySheet } from './components/BrandApplySheet';
+import { CreatorDashboard } from './components/CreatorDashboard';
+import { LabelHub } from './components/LabelHub';
 import { SearchScreen } from './components/SearchScreen';
 import { AccountProfile } from './components/AccountProfile';
 import { AdminConsole } from './components/AdminConsole';
@@ -129,7 +131,7 @@ export default function App() {
     side: 'YES' | 'NO';
   } | null>(null);
   const [walletOpen, setWalletOpen] = useState(false);
-  const [studioView, setStudioView] = useState<'raise' | 'kyc' | null>(null);
+  const [studioView, setStudioView] = useState<'raise' | 'kyc' | 'creator' | 'label' | null>(null);
   const [dossierCreator, setDossierCreator] = useState<Creator | null>(null);
   const [brandApplyCampaign, setBrandApplyCampaign] = useState<BrandCampaign | null>(null);
   const myVerifiedCreators = useMemo(
@@ -492,6 +494,38 @@ export default function App() {
               onSubmitted={() => undefined}
             />
           </div>
+        ) : studioView === 'creator' ? (
+          <div className="max-w-2xl mx-auto">
+            <CreatorDashboard
+              user={user}
+              creators={creators}
+              lang={lang}
+              onBack={() => setStudioView(null)}
+              onOpenDossier={(c) => {
+                setStudioView(null);
+                setDossierCreator(c);
+              }}
+              onStartRaise={startRaise}
+              onVerify={() => setStudioView('kyc')}
+              onRequestMemo={() => {
+                setStudioView(null);
+                setActiveTab('search');
+              }}
+            />
+          </div>
+        ) : studioView === 'label' ? (
+          <div className="max-w-2xl mx-auto">
+            <LabelHub
+              user={user}
+              creators={creators}
+              lang={lang}
+              onBack={() => setStudioView(null)}
+              onOpenDossier={(c) => {
+                setStudioView(null);
+                setDossierCreator(c);
+              }}
+            />
+          </div>
         ) : studioView === 'kyc' ? (
           <div className="max-w-5xl mx-auto">
             <CreatorKyc
@@ -550,6 +584,8 @@ export default function App() {
               onOpenAdmin={() => navigateAdmin(true)}
               onStartRaise={startRaise}
               onVerifyIdentity={() => setStudioView('kyc')}
+              onOpenCreatorDashboard={() => setStudioView('creator')}
+              onOpenLabel={() => setStudioView('label')}
             />
           </div>
         ) : activeTab === 'predictions' ? (

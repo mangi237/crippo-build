@@ -110,6 +110,43 @@ export interface Creator {
   closesAt?: string;
   isVerified: boolean;
   milestonesCompleted?: number;
+  // Public bio (Wikipedia-style profile), editable by the verified owner
+  bio?: string;
+  genres?: string[];
+  activeSinceYear?: number;
+  websiteUrl?: string;
+  // Shown only when the creator opts in; birthYear is removed when they opt out
+  ageVisible?: boolean;
+  birthYear?: number;
+  // Label membership, set when a creator accepts a label invitation
+  labelId?: string;
+  labelName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Label {
+  id: string;
+  ownerUid: string;
+  name: string;
+  country: string;
+  description: string;
+  foundedYear?: number;
+  rccmNumber?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LabelInvitation {
+  id: string; // `${labelId}_${creatorId}`
+  labelId: string;
+  labelName: string;
+  labelOwnerUid: string;
+  creatorId: string;
+  creatorName: string;
+  creatorUid: string;
+  status: 'pending' | 'accepted' | 'declined';
   createdAt: string;
   updatedAt: string;
 }
