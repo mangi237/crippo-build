@@ -50,7 +50,7 @@ import { MarketTableView } from './components/MarketTableView';
 import { PredictionMarketCard } from './components/PredictionMarketCard';
 import { RaceDetail } from './components/RaceDetail';
 import { CreatorDossier } from './components/CreatorDossier';
-import { PredictionVoteModal } from './components/PredictionVoteModal';
+import { PredictionSheet } from './components/PredictionSheet';
 import { OrderExecution } from './components/OrderExecution';
 import { NotificationsDrawer, WalletModal } from './components/WalletAndAlerts';
 import { PortfolioView } from './components/PortfolioView';
@@ -58,9 +58,9 @@ import { RaiseQuestionnaire } from './components/RaiseQuestionnaire';
 import { CreatorKyc } from './components/CreatorKyc';
 import { SearchScreen } from './components/SearchScreen';
 import { AccountProfile } from './components/AccountProfile';
-import { AdminDashboard } from './components/AdminDashboard';
+import { AdminConsole } from './components/AdminConsole';
 import { AuthModal } from './components/AuthModal';
-import { OnboardingScreen, SplashScreen } from './components/SplashAndOnboarding';
+import { OnboardingFlow, SplashScreen } from './components/Onboarding';
 
 type WorkspaceTab = 'markets' | 'races' | 'predictions' | 'portfolio' | 'search' | 'profile';
 
@@ -353,7 +353,7 @@ export default function App() {
     <div className="min-h-screen bg-[#F8F9FC] text-[#0F172A] transition-colors">
       {showSplash && <SplashScreen />}
       {!showSplash && showOnboarding && !isAdminRoute && (
-        <OnboardingScreen lang={lang} onFinish={finishOnboarding} />
+        <OnboardingFlow lang={lang} onFinish={finishOnboarding} />
       )}
 
       {/* Top header + live ticker */}
@@ -431,7 +431,7 @@ export default function App() {
         }`}
       >
         {isAdminRoute ? (
-          <AdminDashboard
+          <AdminConsole
             user={user}
             creators={creators}
             predictions={predictions}
@@ -839,7 +839,7 @@ export default function App() {
         </nav>
       )}
 
-      <PredictionVoteModal
+      <PredictionSheet
         prediction={liveVotingPrediction}
         initialSide={votingPrediction?.side || 'YES'}
         user={user}
