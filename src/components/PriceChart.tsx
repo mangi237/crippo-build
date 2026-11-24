@@ -82,23 +82,23 @@ export const PriceChart: React.FC<{
   return (
     <div className="w-full space-y-2.5">
       {selectedMarker && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-violet-500/40 text-xs">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-full bg-[#F8F9FC] dark:bg-[#0F172A] border border-violet-500/40 text-xs">
           <div className="min-w-0 truncate">
-            <span className="font-semibold text-violet-500">Catalyst Event: </span>
-            <span className="text-[#11081F] dark:text-[#F8F7FC]">{selectedMarker.title}</span>
+            <span className="font-semibold text-[#6C2BD9]">Catalyst Event: </span>
+            <span className="text-[#0F172A] dark:text-[#F8F9FC]">{selectedMarker.title}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0 tabular-nums">
             {selectedMarker.deltaPct !== undefined && (
               <span
                 className={`font-bold ${
-                  selectedMarker.deltaPct >= 0 ? 'text-emerald-500' : 'text-red-500'
+                  selectedMarker.deltaPct >= 0 ? 'text-[#059669]' : 'text-[#DC2626]'
                 }`}
               >
                 {selectedMarker.deltaPct >= 0 ? '+' : ''}
                 {selectedMarker.deltaPct}%
               </span>
             )}
-            <span className="font-mono text-[#645582] dark:text-[#A99BC8]">
+            <span className="font-display num text-[#64748B] dark:text-[#A99BC8]">
               {formatXAF(selectedMarker.priceXAF)}
             </span>
           </div>
@@ -129,7 +129,7 @@ export const PriceChart: React.FC<{
                 backgroundColor: '#180D2B',
                 borderColor: '#2A174A',
                 borderRadius: '16px',
-                color: '#F8F7FC',
+                color: '#F8F9FC',
                 fontSize: '12px',
               }}
               formatter={(value: unknown) => [formatXAF(Number(value || 0)), 'Share Price']}

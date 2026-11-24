@@ -1,31 +1,100 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Crippo Exchange design system (DESIGN.md).
+ * Colours, radii and type are tokens here so every screen uses one source.
+ */
 @theme {
-  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Grotesk", ui-monospace, monospace;
+
+  --color-midnight: #1E0B36;
+  --color-midnight-2: #4C1D95;
+  --color-violet: #6C2BD9;
+  --color-violet-soft: #894FF7;
+  --color-market-green: #059669;
+  --color-market-green-hover: #047857;
+  --color-market-red: #DC2626;
+  --color-market-red-hover: #B91C1C;
+  --color-canvas: #F8F9FC;
+  --color-ink: #0F172A;
+  --color-muted: #64748B;
+  --color-hairline: #E2E8F0;
+  --color-momo: #FFCC00;
+  --color-orange-money: #FF7900;
+
+  --radius-field: 0.25rem;
+  --radius-card: 0.5rem;
+  --radius-modal: 0.75rem;
+
+  --shadow-card: 0 1px 3px 0 rgba(30, 11, 54, 0.04), 0 1px 2px -1px rgba(30, 11, 54, 0.02);
+  --shadow-active: 0 10px 25px -5px rgba(108, 43, 217, 0.08), 0 8px 10px -6px rgba(30, 11, 54, 0.04);
+  --shadow-sheet: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
 }
 
 @layer base {
   html {
-    font-family: "Poppins", ui-sans-serif, system-ui, sans-serif;
+    font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
   body {
     margin: 0;
-    background-color: #F8F7FC;
-    color: #11081F;
-  }
-
-  html.dark body {
-    background-color: #0B0514;
-    color: #F8F7FC;
+    background-color: #F8F9FC;
+    color: #0F172A;
   }
 }
 
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
+/* Financial figures: tabular, lining numerals, no jitter on live tickers. */
+.num {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.font-display {
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+}
+
+.label-xs {
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.card {
+  background: #FFFFFF;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.card-active {
+  background: #FFFFFF;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-active);
+}
+
+.field {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-field);
+  outline: none;
+}
+
+.field:focus {
+  border: 1.5px solid #6C2BD9;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
 }
 
 @keyframes crippo-ticker {

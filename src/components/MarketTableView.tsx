@@ -16,10 +16,10 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
   const t = translations[lang];
 
   return (
-    <div className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl overflow-x-auto">
+    <div className="bg-white dark:bg-[#180D2B] border border-[#E2E8F0] dark:border-[#2A174A] rounded-lg overflow-x-auto">
       <table className="w-full text-left border-collapse min-w-[680px]">
         <thead>
-          <tr className="border-b border-[#E4DFF2] dark:border-[#2A174A] text-[11px] font-semibold text-[#645582] dark:text-[#A99BC8]">
+          <tr className="border-b border-[#E2E8F0] dark:border-[#2A174A] text-[11px] font-semibold text-[#64748B] dark:text-[#A99BC8]">
             <th className="py-3 px-4">Raise / Creator</th>
             <th className="py-3 px-3">Trend</th>
             <th className="py-3 px-3 text-right">{t.sharePrice}</th>
@@ -29,7 +29,7 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
             <th className="py-3 px-4 text-right">Order</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#E4DFF2] dark:divide-[#2A174A] text-xs">
+        <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#2A174A] text-xs">
           {creators.map((c) => {
             const isUp = c.priceChangePct >= 0;
             const totalShares = c.totalShares || 1000;
@@ -38,7 +38,7 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
               <tr
                 key={c.id}
                 onClick={() => onTrade(c, 'BUY')}
-                className="cursor-pointer hover:bg-[#F8F7FC] dark:hover:bg-[#11081F] transition-colors"
+                className="cursor-pointer hover:bg-[#F8F9FC] dark:hover:bg-[#0F172A] transition-colors"
               >
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -50,18 +50,18 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
                         className="w-8 h-8 rounded-full object-cover shrink-0"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-violet-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-[#6C2BD9] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
                         {c.name.slice(0, 2).toUpperCase()}
                       </div>
                     )}
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1 font-semibold text-[#11081F] dark:text-[#F8F7FC] truncate">
+                      <div className="flex items-center gap-1 font-semibold text-[#0F172A] dark:text-[#F8F9FC] truncate">
                         <span className="truncate">
                           {lang === 'FR' ? c.raiseTitleFr || c.raiseTitle || c.name : c.raiseTitle || c.name}
                         </span>
-                        {c.isVerified && <CheckCircle2 className="w-3.5 h-3.5 text-violet-500 shrink-0" />}
+                        {c.isVerified && <CheckCircle2 className="w-3.5 h-3.5 text-[#6C2BD9] shrink-0" />}
                       </div>
-                      <div className="text-[11px] text-[#645582] dark:text-[#A99BC8] truncate">
+                      <div className="text-[11px] text-[#64748B] dark:text-[#A99BC8] truncate">
                         {c.name} · {c.category}
                       </div>
                     </div>
@@ -75,21 +75,21 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
                     height={24}
                   />
                 </td>
-                <td className="py-3 px-3 text-right font-mono font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums">
+                <td className="py-3 px-3 text-right font-display num font-bold text-[#0F172A] dark:text-[#F8F9FC] tabular-nums">
                   {formatXAF(c.sharePriceXAF)}
                 </td>
                 <td
-                  className={`py-3 px-3 text-right font-mono font-semibold tabular-nums ${
-                    isUp ? 'text-emerald-500' : 'text-red-500'
+                  className={`py-3 px-3 text-right font-display num font-semibold tabular-nums ${
+                    isUp ? 'text-[#059669]' : 'text-[#DC2626]'
                   }`}
                 >
                   {isUp ? '+' : ''}
                   {c.priceChangePct}%
                 </td>
-                <td className="py-3 px-3 text-right font-mono text-[#11081F] dark:text-[#F8F7FC] tabular-nums">
+                <td className="py-3 px-3 text-right font-display num text-[#0F172A] dark:text-[#F8F9FC] tabular-nums">
                   {left.toLocaleString()} / {totalShares.toLocaleString()}
                 </td>
-                <td className="py-3 px-3 text-right font-mono text-[#645582] dark:text-[#A99BC8] tabular-nums">
+                <td className="py-3 px-3 text-right font-display num text-[#64748B] dark:text-[#A99BC8] tabular-nums">
                   {formatCompact(c.totalRaisedXAF || 0)}
                 </td>
                 <td className="py-3 px-4 text-right">
@@ -100,7 +100,7 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
                         e.stopPropagation();
                         onTrade(c, 'BUY');
                       }}
-                      className="px-3.5 py-1.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-semibold"
+                      className="px-3.5 py-1.5 rounded-full bg-[#6C2BD9] hover:bg-[#6C2BD9] text-white text-[11px] font-semibold"
                     >
                       {t.buy}
                     </button>
@@ -110,7 +110,7 @@ export const MarketTableView: React.FC<MarketTableViewProps> = ({ creators, lang
                         e.stopPropagation();
                         onTrade(c, 'SELL');
                       }}
-                      className="px-3.5 py-1.5 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] text-[#11081F] dark:text-[#F8F7FC] text-[11px] font-semibold"
+                      className="px-3.5 py-1.5 rounded-full bg-[#F8F9FC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#2A174A] text-[#0F172A] dark:text-[#F8F9FC] text-[11px] font-semibold"
                     >
                       {t.sell}
                     </button>

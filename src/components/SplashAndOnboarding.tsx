@@ -4,9 +4,9 @@ import type { AppLang } from '../i18n/translations';
 
 export const SplashScreen: React.FC = () => {
   return (
-    <div className="fixed inset-0 z-50 bg-[#0B0514] text-[#F8F7FC] flex flex-col items-center justify-center px-6">
+    <div className="fixed inset-0 z-50 bg-[#0B0514] text-[#F8F9FC] flex flex-col items-center justify-center px-6">
       <div className="flex flex-col items-center text-center space-y-5 max-w-sm">
-        <div className="w-20 h-20 rounded-full bg-violet-600 text-white text-3xl font-extrabold flex items-center justify-center">
+        <div className="w-20 h-20 rounded-full bg-[#6C2BD9] text-white text-3xl font-extrabold flex items-center justify-center">
           C
         </div>
         <div className="space-y-2">
@@ -16,7 +16,7 @@ export const SplashScreen: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 pt-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-[#059669] animate-pulse" />
           <span>CAMEROON CREATOR CAPITAL EXCHANGE · XAF</span>
         </div>
       </div>
@@ -104,11 +104,11 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ lang, onFini
   const isLast = step === slides.length - 1;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#F8F7FC] dark:bg-[#0B0514] text-[#11081F] dark:text-[#F8F7FC] flex flex-col justify-between p-6 sm:p-10 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-[#F8F9FC] dark:bg-[#0B0514] text-[#0F172A] dark:text-[#F8F9FC] flex flex-col justify-between p-6 sm:p-10 overflow-y-auto">
       {/* Top Bar */}
       <div className="max-w-lg w-full mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <span className="w-9 h-9 rounded-full bg-violet-600 text-white font-extrabold text-sm flex items-center justify-center">
+          <span className="w-9 h-9 rounded-full bg-[#6C2BD9] text-white font-extrabold text-sm flex items-center justify-center">
             C
           </span>
           <span className="text-lg font-extrabold tracking-tight">Crippo</span>
@@ -117,7 +117,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ lang, onFini
         <button
           type="button"
           onClick={onFinish}
-          className="px-4 py-2 rounded-full text-xs font-semibold text-[#645582] dark:text-[#A99BC8] hover:text-[#11081F] dark:hover:text-white"
+          className="px-4 py-2 rounded-full text-xs font-semibold text-[#64748B] dark:text-[#A99BC8] hover:text-[#0F172A] dark:hover:text-white"
         >
           {lang === 'FR' ? 'Passer' : 'Skip'}
         </button>
@@ -125,12 +125,12 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ lang, onFini
 
       {/* Main Content */}
       <div className="max-w-lg w-full mx-auto py-8 space-y-6">
-        <div className="w-16 h-16 rounded-full bg-violet-600 text-white flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-[#6C2BD9] text-white flex items-center justify-center">
           <Icon className="w-7 h-7" />
         </div>
 
         <div className="space-y-3">
-          <div className="text-xs font-bold tracking-wider uppercase text-violet-500">
+          <div className="text-xs font-bold tracking-wider uppercase text-[#6C2BD9]">
             {current.eyebrow}
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold leading-tight">
@@ -144,7 +144,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ lang, onFini
         <div className="space-y-2.5 pt-1">
           {current.highlights.map((h) => (
             <div key={h} className="flex items-start gap-2.5 text-xs sm:text-sm font-medium">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-4 h-4 text-[#059669] shrink-0 mt-0.5" />
               <span>{h}</span>
             </div>
           ))}
@@ -161,7 +161,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ lang, onFini
               aria-label={`Slide ${idx + 1}`}
               onClick={() => setStep(idx)}
               className={`h-2 rounded-full transition-all ${
-                idx === step ? 'w-8 bg-violet-600' : 'w-2 bg-[#D6CEE8] dark:bg-[#2A174A]'
+                idx === step ? 'w-8 bg-[#6C2BD9]' : 'w-2 bg-[#D6CEE8] dark:bg-[#2A174A]'
               }`}
             />
           ))}
@@ -173,7 +173,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ lang, onFini
             if (isLast) onFinish();
             else setStep((s) => s + 1);
           }}
-          className="w-full py-4 px-6 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+          className="w-full py-4 px-6 rounded-full bg-[#6C2BD9] hover:bg-[#6C2BD9] text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors"
         >
           {isLast ? (
             <>

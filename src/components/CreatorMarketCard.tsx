@@ -46,7 +46,7 @@ export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
   return (
     <div
       onClick={() => onTrade(creator, 'BUY')}
-      className="cursor-pointer bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] hover:border-violet-500/70 rounded-3xl p-5 space-y-4 transition-colors"
+      className="cursor-pointer bg-white dark:bg-[#180D2B] border border-[#E2E8F0] dark:border-[#2A174A] hover:border-violet-500/70 rounded-lg p-5 space-y-4 transition-colors"
     >
       {/* Top Header: Raise Title + Category + Share Price & Sparkline */}
       <div className="flex items-start justify-between gap-3">
@@ -56,25 +56,25 @@ export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
               src={creator.avatarUrl}
               alt={creator.name}
               referrerPolicy="no-referrer"
-              className="w-12 h-12 rounded-full object-cover bg-[#F8F7FC] dark:bg-[#11081F] shrink-0"
+              className="w-12 h-12 rounded-full object-cover bg-[#F8F9FC] dark:bg-[#0F172A] shrink-0"
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-violet-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-full bg-[#6C2BD9] text-white font-bold text-xs flex items-center justify-center shrink-0">
               {initials}
             </div>
           )}
 
           <div className="min-w-0">
-            <div className="text-[11px] font-semibold text-violet-600 dark:text-violet-400 truncate">
+            <div className="text-[11px] font-semibold text-[#6C2BD9] dark:text-[#894FF7] truncate">
               {creator.category}
               {isUnclaimed ? (lang === 'FR' ? ' · À réclamer' : ' · Unclaimed Directory') : ''}
             </div>
-            <h3 className="text-sm sm:text-base font-bold text-[#11081F] dark:text-[#F8F7FC] truncate">
+            <h3 className="text-sm sm:text-base font-bold text-[#0F172A] dark:text-[#F8F9FC] truncate">
               {displayTitle}
             </h3>
-            <div className="flex items-center gap-1.5 text-xs text-[#645582] dark:text-[#A99BC8] truncate">
+            <div className="flex items-center gap-1.5 text-xs text-[#64748B] dark:text-[#A99BC8] truncate">
               <span className="truncate">{creator.name}</span>
-              {creator.isVerified && <CheckCircle2 className="w-3.5 h-3.5 text-violet-500 shrink-0" />}
+              {creator.isVerified && <CheckCircle2 className="w-3.5 h-3.5 text-[#6C2BD9] shrink-0" />}
               <span aria-hidden="true">·</span>
               <span className="truncate">{creator.handle}</span>
             </div>
@@ -95,12 +95,12 @@ export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
             />
           </div>
           <div className="text-right">
-            <div className="text-sm sm:text-base font-bold text-[#11081F] dark:text-[#F8F7FC] tabular-nums">
+            <div className="text-sm sm:text-base font-bold text-[#0F172A] dark:text-[#F8F9FC] tabular-nums">
               {formatXAF(creator.sharePriceXAF)}
             </div>
             <div
               className={`text-xs font-semibold tabular-nums ${
-                isUp ? 'text-emerald-500' : 'text-red-500'
+                isUp ? 'text-[#059669]' : 'text-[#DC2626]'
               }`}
             >
               {isUp ? '+' : ''}
@@ -113,27 +113,27 @@ export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
       {/* Progress & Cap Table Telemetry */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs tabular-nums">
-          <span className="text-[#645582] dark:text-[#A99BC8]">
-            {t.raised}: <strong className="text-[#11081F] dark:text-[#F8F7FC]">{formatCompact(raised)} XAF</strong>
+          <span className="text-[#64748B] dark:text-[#A99BC8]">
+            {t.raised}: <strong className="text-[#0F172A] dark:text-[#F8F9FC]">{formatCompact(raised)} XAF</strong>
           </span>
-          <span className="text-[#645582] dark:text-[#A99BC8]">
-            {t.target}: <strong className="text-[#11081F] dark:text-[#F8F7FC]">{formatCompact(targetRaise)} XAF</strong>
+          <span className="text-[#64748B] dark:text-[#A99BC8]">
+            {t.target}: <strong className="text-[#0F172A] dark:text-[#F8F9FC]">{formatCompact(targetRaise)} XAF</strong>
           </span>
         </div>
 
-        <div className="w-full h-1.5 rounded-full bg-[#E4DFF2] dark:bg-[#2A174A] overflow-hidden">
+        <div className="w-full h-1.5 rounded-full bg-[#E2E8F0] dark:bg-[#2A174A] overflow-hidden">
           <div
-            className="h-full bg-violet-600 rounded-full transition-all"
+            className="h-full bg-[#6C2BD9] rounded-full transition-all"
             style={{ width: `${progressPct}%` }}
           />
         </div>
 
-        <div className="flex items-center justify-between text-[11px] text-[#645582] dark:text-[#A99BC8] tabular-nums">
+        <div className="flex items-center justify-between text-[11px] text-[#64748B] dark:text-[#A99BC8] tabular-nums">
           <span>
             {sharesRemaining.toLocaleString()} / {totalShares.toLocaleString()} {t.sharesLeft.toLowerCase()}
           </span>
           <span className="inline-flex items-center gap-1">
-            <Users className="w-3 h-3 text-violet-500" />
+            <Users className="w-3 h-3 text-[#6C2BD9]" />
             {creator.investorsCount ?? 0} {t.investors.toLowerCase()}
           </span>
         </div>
@@ -148,7 +148,7 @@ export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
               e.stopPropagation();
               onClaim(creator);
             }}
-            className="flex-1 py-2.5 px-4 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors whitespace-nowrap"
+            className="flex-1 py-2.5 px-4 rounded-full bg-[#6C2BD9] hover:bg-[#6C2BD9] text-white text-xs font-semibold transition-colors whitespace-nowrap"
           >
             {lang === 'FR' ? 'Réclamer ce profil' : 'Claim Profile'}
           </button>
@@ -159,7 +159,7 @@ export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
               e.stopPropagation();
               onTrade(creator, 'BUY');
             }}
-            className="flex-1 py-2.5 px-4 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors whitespace-nowrap"
+            className="flex-1 py-2.5 px-4 rounded-full bg-[#6C2BD9] hover:bg-[#6C2BD9] text-white text-xs font-semibold transition-colors whitespace-nowrap"
           >
             <span className="sm:hidden">{t.joinRaise}</span>
             <span className="hidden sm:inline">{t.buy}</span>
@@ -173,7 +173,7 @@ export const CreatorMarketCard: React.FC<CreatorMarketCardProps> = ({
               e.stopPropagation();
               onTrade(creator, 'SELL');
             }}
-            className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] hover:border-red-500/60 text-[#11081F] dark:text-[#F8F7FC] text-xs font-semibold transition-colors whitespace-nowrap"
+            className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-[#F8F9FC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#2A174A] hover:border-red-500/60 text-[#0F172A] dark:text-[#F8F9FC] text-xs font-semibold transition-colors whitespace-nowrap"
           >
             {t.sell}
           </button>

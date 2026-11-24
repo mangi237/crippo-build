@@ -115,16 +115,16 @@ export const SearchView: React.FC<SearchViewProps> = ({
             if (submittedMemo) setSubmittedMemo(null);
           }}
           placeholder={t.searchPlaceholder}
-          className="w-full h-12 pl-12 pr-5 text-sm bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-full text-[#11081F] dark:text-[#F8F7FC] placeholder:text-[#7E6FA1] focus:outline-none focus:border-violet-500"
+          className="w-full h-12 pl-12 pr-5 text-sm bg-white dark:bg-[#180D2B] border border-[#E2E8F0] dark:border-[#2A174A] rounded-full text-[#0F172A] dark:text-[#F8F9FC] placeholder:text-[#7E6FA1] focus:outline-none focus:border-violet-500"
         />
       </div>
 
       {submittedMemo && (
-        <div className="p-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
-          <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-lg bg-[#059669]/10 border border-emerald-500/30 flex items-start gap-3">
+          <CheckCircle2 className="w-5 h-5 text-[#059669] shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">Listing Memo Logged</p>
-            <p className="text-xs text-[#645582] dark:text-[#A99BC8] mt-0.5">
+            <p className="text-sm font-bold text-[#0F172A] dark:text-[#F8F9FC]">Listing Memo Logged</p>
+            <p className="text-xs text-[#64748B] dark:text-[#A99BC8] mt-0.5">
               Requested underwriting review for <strong>{submittedMemo.creatorName}</strong>.
             </p>
           </div>
@@ -162,14 +162,14 @@ export const SearchView: React.FC<SearchViewProps> = ({
         </div>
       ) : (
         <div className="py-14 px-4 text-center space-y-4">
-          <div className="w-14 h-14 rounded-full bg-violet-600/15 text-violet-500 flex items-center justify-center mx-auto">
+          <div className="w-14 h-14 rounded-full bg-[#6C2BD9]/15 text-[#6C2BD9] flex items-center justify-center mx-auto">
             <Sparkles className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">
+            <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8F9FC]">
               {normalized ? `No listing for "${queryText.trim()}"` : t.emptyRaises}
             </h3>
-            <p className="text-xs sm:text-sm text-[#645582] dark:text-[#A99BC8] max-w-sm mx-auto">
+            <p className="text-xs sm:text-sm text-[#64748B] dark:text-[#A99BC8] max-w-sm mx-auto">
               Request an AI underwriting memo so our team can verify social metrics and open a Raise.
             </p>
           </div>
@@ -177,7 +177,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
             <button
               type="button"
               onClick={openMemoPrompt}
-              className="px-6 py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
+              className="px-6 py-3 rounded-full bg-[#6C2BD9] hover:bg-[#6C2BD9] text-white text-xs font-semibold"
             >
               {t.requestListing}
             </button>
@@ -186,12 +186,12 @@ export const SearchView: React.FC<SearchViewProps> = ({
       )}
 
       {(filteredCreators.length > 0 || filteredPreds.length > 0) && normalized.length >= 2 && !showMemoForm && (
-        <div className="py-3 px-2 flex items-center justify-between gap-3 border-t border-[#E4DFF2] dark:border-[#2A174A]">
-          <span className="text-xs text-[#645582] dark:text-[#A99BC8]">{t.requestListing}</span>
+        <div className="py-3 px-2 flex items-center justify-between gap-3 border-t border-[#E2E8F0] dark:border-[#2A174A]">
+          <span className="text-xs text-[#64748B] dark:text-[#A99BC8]">{t.requestListing}</span>
           <button
             type="button"
             onClick={openMemoPrompt}
-            className="px-4 py-2 rounded-full bg-violet-600 text-white text-xs font-semibold shrink-0"
+            className="px-4 py-2 rounded-full bg-[#6C2BD9] text-white text-xs font-semibold shrink-0"
           >
             Request Memo
           </button>
@@ -201,21 +201,21 @@ export const SearchView: React.FC<SearchViewProps> = ({
       {showMemoForm && (
         <form
           onSubmit={handleSubmitMemo}
-          className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-6 space-y-4"
+          className="bg-white dark:bg-[#180D2B] border border-[#E2E8F0] dark:border-[#2A174A] rounded-lg p-6 space-y-4"
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">Request Creator Listing</h3>
+            <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8F9FC]">Request Creator Listing</h3>
             <button
               type="button"
               onClick={() => setShowMemoForm(false)}
-              className="text-xs font-semibold text-[#645582] dark:text-[#A99BC8]"
+              className="text-xs font-semibold text-[#64748B] dark:text-[#A99BC8]"
             >
               Cancel
             </button>
           </div>
 
           {error && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-500">
+            <div className="p-3 rounded-xl bg-[#DC2626]/10 border border-red-500/30 text-xs text-[#DC2626]">
               {error}
             </div>
           )}
@@ -228,14 +228,14 @@ export const SearchView: React.FC<SearchViewProps> = ({
               value={creatorName}
               onChange={(e) => setCreatorName(e.target.value)}
               placeholder="Creator or artist name *"
-              className="px-4 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl focus:outline-none focus:border-violet-500"
+              className="px-4 py-3 text-sm bg-[#F8F9FC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#2A174A] rounded-lg focus:outline-none focus:border-violet-500"
             />
             <input
               type="text"
               value={handle}
               onChange={(e) => setHandle(e.target.value)}
               placeholder="@handle"
-              className="px-4 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl focus:outline-none focus:border-violet-500"
+              className="px-4 py-3 text-sm bg-[#F8F9FC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#2A174A] rounded-lg focus:outline-none focus:border-violet-500"
             />
           </div>
 
@@ -243,7 +243,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
             <select
               value={platform}
               onChange={(e) => setPlatform(e.target.value as MemoRequest['platform'])}
-              className="px-4 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl"
+              className="px-4 py-3 text-sm bg-[#F8F9FC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#2A174A] rounded-lg"
             >
               <option value="TikTok">TikTok</option>
               <option value="Facebook">Facebook</option>
@@ -255,7 +255,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
               value={socialUrl}
               onChange={(e) => setSocialUrl(e.target.value)}
               placeholder="Channel URL"
-              className="px-4 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl focus:outline-none focus:border-violet-500"
+              className="px-4 py-3 text-sm bg-[#F8F9FC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#2A174A] rounded-lg focus:outline-none focus:border-violet-500"
             />
           </div>
 
@@ -264,13 +264,13 @@ export const SearchView: React.FC<SearchViewProps> = ({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Upcoming project or cultural catalyst..."
-            className="w-full px-4 py-3 text-sm bg-[#F8F7FC] dark:bg-[#11081F] border border-[#E4DFF2] dark:border-[#2A174A] rounded-2xl focus:outline-none focus:border-violet-500 resize-none"
+            className="w-full px-4 py-3 text-sm bg-[#F8F9FC] dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-[#2A174A] rounded-lg focus:outline-none focus:border-violet-500 resize-none"
           />
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3.5 px-5 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-semibold flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-5 rounded-lg bg-[#6C2BD9] hover:bg-[#6C2BD9] disabled:opacity-50 text-white text-sm font-semibold flex items-center justify-center gap-2"
           >
             <Send className="w-4 h-4" />
             {submitting ? 'Submitting...' : 'Submit Memo Request'}

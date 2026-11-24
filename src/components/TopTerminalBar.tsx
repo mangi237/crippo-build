@@ -58,7 +58,7 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[#F8F7FC] dark:bg-[#0B0514] border-b border-[#E4DFF2] dark:border-[#2A174A]">
+    <header className="sticky top-0 z-40 bg-[#F8F9FC] dark:bg-[#0B0514] border-b border-[#E2E8F0] dark:border-[#2A174A]">
       {/* Desktop Top Exchange Bar */}
       <div className="hidden md:flex max-w-[1440px] mx-auto px-6 h-20 items-center justify-between gap-6">
         <div className="flex items-center gap-4 shrink-0">
@@ -67,14 +67,14 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
             onClick={onGoHome}
             className="flex items-center gap-2.5 text-lg font-bold tracking-tight whitespace-nowrap"
           >
-            <span className="w-9 h-9 rounded-full bg-violet-600 text-white font-extrabold text-sm flex items-center justify-center">
+            <span className="w-9 h-9 rounded-full bg-[#6C2BD9] text-white font-extrabold text-sm flex items-center justify-center">
               C
             </span>
-            <span className="text-[#11081F] dark:text-[#F8F7FC]">Crippo</span>
+            <span className="text-[#0F172A] dark:text-[#F8F9FC]">Crippo</span>
           </button>
 
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#059669] dark:text-emerald-400 whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-[#059669]" />
             {t.marketOpen}
           </span>
         </div>
@@ -87,7 +87,7 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t.searchPlaceholder}
-            className="w-full h-12 pl-12 pr-5 text-sm rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] text-[#11081F] dark:text-[#F8F7FC] placeholder:text-[#7E6FA1] focus:outline-none focus:border-violet-500"
+            className="w-full h-12 pl-12 pr-5 text-sm rounded-full bg-white dark:bg-[#180D2B] border border-[#E2E8F0] dark:border-[#2A174A] text-[#0F172A] dark:text-[#F8F9FC] placeholder:text-[#7E6FA1] focus:outline-none focus:border-violet-500"
           />
         </div>
 
@@ -97,11 +97,11 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
             type="button"
             onClick={onOpenNotifications}
             aria-label={t.notifications}
-            className="relative w-11 h-11 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#11081F] dark:text-[#F8F7FC] hover:border-violet-500"
+            className="relative w-11 h-11 rounded-full bg-white dark:bg-[#180D2B] border border-[#E2E8F0] dark:border-[#2A174A] flex items-center justify-center text-[#0F172A] dark:text-[#F8F9FC] hover:border-violet-500"
           >
             <Bell className="w-4 h-4" />
             {unreadNotifications > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-violet-600 text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#6C2BD9] text-white text-[10px] font-bold flex items-center justify-center tabular-nums">
                 {unreadNotifications}
               </span>
             )}
@@ -111,7 +111,7 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
             <button
               type="button"
               onClick={onOpenWallet}
-              className="flex items-center gap-2 h-11 px-5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors whitespace-nowrap tabular-nums"
+              className="flex items-center gap-2 h-11 px-5 rounded-full bg-[#6C2BD9] hover:bg-[#6C2BD9] text-white text-xs font-semibold transition-colors whitespace-nowrap tabular-nums"
             >
               <Wallet className="w-4 h-4" />
               <span>{formatXAF((user.walletBalanceXAF || 0) + portfolioValueXAF)}</span>
@@ -121,14 +121,14 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
               <button
                 type="button"
                 onClick={onOpenAuth}
-                className="h-11 px-5 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC] hover:border-violet-500 whitespace-nowrap"
+                className="h-11 px-5 rounded-full bg-white dark:bg-[#180D2B] border border-[#E2E8F0] dark:border-[#2A174A] text-xs font-semibold text-[#0F172A] dark:text-[#F8F9FC] hover:border-violet-500 whitespace-nowrap"
               >
                 {t.logIn}
               </button>
               <button
                 type="button"
                 onClick={onOpenAuth}
-                className="h-11 px-5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold whitespace-nowrap"
+                className="h-11 px-5 rounded-full bg-[#6C2BD9] hover:bg-[#6C2BD9] text-white text-xs font-semibold whitespace-nowrap"
               >
                 {t.signUp}
               </button>
@@ -141,10 +141,10 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
       <div className="md:hidden px-4 pt-3.5 pb-3 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={onGoHome} className="flex items-center gap-2 font-bold text-base">
-            <span className="w-8 h-8 rounded-full bg-violet-600 text-white font-extrabold text-sm flex items-center justify-center">
+            <span className="w-8 h-8 rounded-full bg-[#6C2BD9] text-white font-extrabold text-sm flex items-center justify-center">
               C
             </span>
-            <span className="text-[#11081F] dark:text-[#F8F7FC]">Crippo</span>
+            <span className="text-[#0F172A] dark:text-[#F8F9FC]">Crippo</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -152,7 +152,7 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
               <button
                 type="button"
                 onClick={onOpenWallet}
-                className="h-9 px-3.5 rounded-full bg-violet-600 text-white text-xs font-semibold inline-flex items-center gap-1.5 tabular-nums"
+                className="h-9 px-3.5 rounded-full bg-[#6C2BD9] text-white text-xs font-semibold inline-flex items-center gap-1.5 tabular-nums"
               >
                 <Wallet className="w-3.5 h-3.5" />
                 <span>{formatXAF(user.walletBalanceXAF || 0)}</span>
@@ -161,7 +161,7 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
               <button
                 type="button"
                 onClick={onOpenAuth}
-                className="h-9 px-4 rounded-full bg-violet-600 text-white text-xs font-semibold"
+                className="h-9 px-4 rounded-full bg-[#6C2BD9] text-white text-xs font-semibold"
               >
                 {t.logIn}
               </button>
@@ -171,11 +171,11 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
               type="button"
               onClick={onOpenNotifications}
               aria-label={t.notifications}
-              className="relative w-9 h-9 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-center text-[#11081F] dark:text-[#F8F7FC]"
+              className="relative w-9 h-9 rounded-full bg-white dark:bg-[#180D2B] border border-[#E2E8F0] dark:border-[#2A174A] flex items-center justify-center text-[#0F172A] dark:text-[#F8F9FC]"
             >
               <Bell className="w-4 h-4" />
               {unreadNotifications > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#6C2BD9] animate-pulse" />
               )}
             </button>
           </div>
@@ -188,14 +188,14 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t.mobileSearchPlaceholder}
-            className="w-full h-12 pl-11 pr-4 text-sm rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] text-[#11081F] dark:text-[#F8F7FC] placeholder:text-[#7E6FA1] focus:outline-none focus:border-violet-500"
+            className="w-full h-12 pl-11 pr-4 text-sm rounded-full bg-white dark:bg-[#180D2B] border border-[#E2E8F0] dark:border-[#2A174A] text-[#0F172A] dark:text-[#F8F9FC] placeholder:text-[#7E6FA1] focus:outline-none focus:border-violet-500"
           />
         </div>
       </div>
 
       {/* Live Catalyst Ticker (Pure Solid Surface) */}
       {tickerItems.length > 0 && (
-        <div className="border-t border-[#E4DFF2] dark:border-[#2A174A] bg-white dark:bg-[#11081F] overflow-hidden py-1.5">
+        <div className="border-t border-[#E2E8F0] dark:border-[#2A174A] bg-white dark:bg-[#0F172A] overflow-hidden py-1.5">
           <div className="animate-crippo-ticker items-center gap-6 px-4 text-xs">
             {[...tickerItems, ...tickerItems].map((item, idx) => {
               const isUp = item.deltaPct >= 0;
@@ -206,16 +206,16 @@ export const TopTerminalBar: React.FC<TopTerminalBarProps> = ({
                   onClick={() => item.creator && onSelectCreator(item.creator)}
                   className="inline-flex items-center gap-2 whitespace-nowrap shrink-0 hover:opacity-80"
                 >
-                  <span className="font-mono text-[10px] font-bold text-violet-600 dark:text-violet-400">
+                  <span className="font-display num text-[10px] font-bold text-[#6C2BD9] dark:text-[#894FF7]">
                     [{item.city}]
                   </span>
-                  <span className="font-medium text-[#11081F] dark:text-[#F8F7FC]">{item.label}</span>
-                  <span className="font-mono text-[#645582] dark:text-[#A99BC8] tabular-nums">
+                  <span className="font-medium text-[#0F172A] dark:text-[#F8F9FC]">{item.label}</span>
+                  <span className="font-display num text-[#64748B] dark:text-[#A99BC8] tabular-nums">
                     {item.price}
                   </span>
                   <span
-                    className={`font-mono font-semibold tabular-nums ${
-                      isUp ? 'text-emerald-500' : 'text-red-500'
+                    className={`font-display num font-semibold tabular-nums ${
+                      isUp ? 'text-[#059669]' : 'text-[#DC2626]'
                     }`}
                   >
                     {isUp ? '▲ +' : '▼ '}

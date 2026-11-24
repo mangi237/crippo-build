@@ -10,6 +10,7 @@ import {
   Table2,
   TrendingUp,
   User as UserIcon,
+  Wallet,
 } from 'lucide-react';
 import { auth, testConnection } from './services/firebase';
 import {
@@ -49,6 +50,7 @@ import { MarketTableView } from './components/MarketTableView';
 import { PredictionMarketCard } from './components/PredictionMarketCard';
 import { RaiseDetailView } from './components/RaiseDetailView';
 import { PredictionVoteModal } from './components/PredictionVoteModal';
+import { OrderExecution } from './components/OrderExecution';
 import { NotificationsDrawer, WalletModal } from './components/WalletAndNotifications';
 import { TradesView } from './components/TradesView';
 import { SearchView } from './components/SearchView';
@@ -57,7 +59,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AuthModal } from './components/AuthModal';
 import { OnboardingScreen, SplashScreen } from './components/SplashAndOnboarding';
 
-type WorkspaceTab = 'markets' | 'predictions' | 'portfolio' | 'search' | 'profile';
+type WorkspaceTab = 'markets' | 'races' | 'predictions' | 'portfolio' | 'search' | 'profile';
 
 type MarketCategoryFilter =
   | 'Trending'
@@ -83,7 +85,7 @@ const MARKET_CATEGORIES: MarketCategoryFilter[] = [
 const ONBOARDING_STORAGE_KEY = 'crippo_onboarded_v1';
 
 export default function App() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const [lang, setLang] = useState<AppLang>('EN');
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
@@ -324,14 +326,26 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  const showShell = !isAdminRoute && !liveSelectedRaiseCreator;
+
+  const navItems: { id: WorkspaceTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'markets', label: t.markets, icon: CandlestickChart },
+    { id: 'races', label: lang === 'FR' ? 'Courses' : 'Races', icon: LayoutGrid },
+    { id: 'predictions', label: t.predictions, icon: Percent },
+    { id: 'portfolio', label: t.portfolio, icon: Briefcase },
+    { id: 'profile', label: user?.isVerifiedCreator ? 'Studio' : t.profile, icon: UserIcon },
+  ];
+
+  const sideRaiseCreator = selectedRaise?.side === 'SELL' ? liveSelectedRaiseCreator : null;
+
   return (
-    <div className="min-h-screen bg-[#F8F7FC] dark:bg-[#0B0514] text-[#11081F] dark:text-[#F8F7FC] transition-colors">
+    <div className="min-h-screen bg-[#F8F9FC] text-[#0F172A] transition-colors">
       {showSplash && <SplashScreen />}
       {!showSplash && showOnboarding && !isAdminRoute && (
         <OnboardingScreen lang={lang} onFinish={finishOnboarding} />
       )}
 
-      {/* Sticky Top Exchange Bar + Live Catalyst Ticker */}
+      {/* Top header + live ticker */}
       <TopTerminalBar
         user={user}
         portfolioValueXAF={portfolioValueXAF}
@@ -357,60 +371,70 @@ export default function App() {
         onSelectCreator={(c) => openRaise(c, 'BUY')}
       />
 
-      {/* Desktop Sub-Navigation Bar (Pure Solid Theme Surface) */}
-      {!isAdminRoute && !liveSelectedRaiseCreator && (
-        <div className="hidden md:block border-b border-[#E4DFF2] dark:border-[#2A174A] bg-white dark:bg-[#11081F]">
-          <div className="max-w-[1440px] mx-auto px-6 h-12 flex items-center justify-between gap-4 text-xs">
-            <div className="flex items-center gap-1.5">
-              {[
-                { id: 'markets', label: t.markets },
-                { id: 'portfolio', label: t.portfolio },
-                { id: 'search', label: lang === 'FR' ? 'Annuaire & Notes' : 'Directory & Memos' },
-                { id: 'profile', label: user?.isVerifiedCreator ? 'Creator Studio' : t.profile },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveTab(item.id as WorkspaceTab)}
-                  className={`px-4 py-1.5 rounded-full font-semibold transition-colors ${
-                    activeTab === item.id
-                      ? 'bg-violet-600 text-white'
-                      : 'text-[#645582] dark:text-[#A99BC8] hover:text-[#11081F] dark:hover:text-[#F8F7FC]'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            {authReady && user && (
-              <div className="flex items-center gap-3 text-[11px] text-[#645582] dark:text-[#A99BC8] tabular-nums">
-                <span>
-                  MoMo Cash: <strong className="text-[#11081F] dark:text-[#F8F7FC]">{formatXAF(user.walletBalanceXAF || 0)}</strong>
-                </span>
-                {user.admin && (
-                  <button
-                    type="button"
-                    onClick={() => navigateAdmin(true)}
-                    className="px-3 py-1 rounded-full bg-violet-600/15 text-violet-500 font-semibold hover:bg-violet-600/25"
-                  >
-                    {t.adminConsole}
-                  </button>
-                )}
-              </div>
-            )}
+      {/* Desktop sidebar */}
+      {showShell && (
+        <aside className="hidden md:flex fixed left-0 top-[68px] bottom-0 w-60 flex-col gap-1 bg-white px-4 py-6">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(item.id);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-[8px] text-sm font-semibold transition-colors ${
+                  active ? 'bg-[#EAEDFF] text-[#1E0B36]' : 'text-[#64748B] hover:bg-[#F2F3FF] hover:text-[#0F172A]'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {item.label}
+              </button>
+            );
+          })}
+          {user?.admin && (
+            <button
+              type="button"
+              onClick={() => navigateAdmin(true)}
+              className="mt-2 flex items-center gap-3 px-4 py-2.5 rounded-[8px] text-sm font-semibold text-[#6C2BD9] hover:bg-[#F2F3FF]"
+            >
+              <Sparkles className="w-4 h-4" />
+              {t.adminConsole}
+            </button>
+          )}
+          <div className="mt-auto rounded-[8px] bg-[#F8F9FC] p-4">
+            <p className="label-xs text-[#64748B]">MoMo cash</p>
+            <p className="num font-display text-lg font-bold text-[#0F172A] mt-1">
+              {authReady && user ? formatXAF(user.walletBalanceXAF || 0) : '—'}
+            </p>
           </div>
-        </div>
+        </aside>
       )}
 
-      {/* Main Content Container */}
-      <main className="max-w-[1440px] mx-auto px-4 md:px-6 pt-5 pb-28 md:pb-12">
+      {/* Main content */}
+      <main
+        className={`max-w-[1200px] mx-auto px-4 md:px-8 pt-5 pb-28 md:pb-12 ${
+          showShell ? 'md:pl-[17rem]' : ''
+        }`}
+      >
         {isAdminRoute ? (
           <AdminDashboard
             user={user}
             creators={creators}
             predictions={predictions}
             onExit={() => navigateAdmin(false)}
+          />
+        ) : sideRaiseCreator ? (
+          <OrderExecution
+            creator={sideRaiseCreator}
+            trades={trades}
+            user={user}
+            lang={lang}
+            initialSide="SELL"
+            onBack={() => setSelectedRaise(null)}
+            onRequireAuth={() => setAuthModalOpen(true)}
           />
         ) : liveSelectedRaiseCreator ? (
           <RaiseDetailView
@@ -475,21 +499,14 @@ export default function App() {
             />
           </div>
         ) : activeTab === 'predictions' ? (
-          /* Mobile Dedicated Predictions Tab */
+          /* Cultural Predictions screen */
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <h1 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                {t.predictionMarkets}
-              </h1>
-              <span className="text-xs text-[#645582] dark:text-[#A99BC8] tabular-nums">
-                {filteredPredictions.length} live
-              </span>
+              <h1 className="font-display text-2xl font-bold text-[#0F172A]">{t.predictionMarkets}</h1>
+              <span className="num text-xs text-[#64748B]">{filteredPredictions.length} live</span>
             </div>
-
             {filteredPredictions.length === 0 ? (
-              <div className="py-12 text-center text-xs text-[#645582] dark:text-[#A99BC8]">
-                {t.emptyPredictions}
-              </div>
+              <div className="py-12 text-center text-xs text-[#64748B]">{t.emptyPredictions}</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {filteredPredictions.map((pred) => (
@@ -502,70 +519,152 @@ export default function App() {
                 ))}
               </div>
             )}
-
-            {/* Cultural Catalysts below predictions on mobile */}
-            <section className="pt-2 space-y-3">
-              <div className="flex items-center gap-2">
-                <Flame className="w-4 h-4 text-violet-500" />
-                <h2 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                  {t.culturalCatalysts}
-                </h2>
-              </div>
-              <div className="space-y-2.5">
-                {newsPosts.slice(0, 6).map((post) => {
-                  const linked = creators.find((c) => c.id === post.creatorId);
-                  const isPos = (post.impactPct ?? 0) >= 0;
-                  return (
-                    <div
-                      key={post.id}
-                      onClick={() => linked && openRaise(linked, 'BUY')}
-                      className="cursor-pointer p-4 rounded-3xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] space-y-1.5"
-                    >
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-semibold text-violet-500">{post.sourceName}</span>
-                        {typeof post.impactPct === 'number' && (
-                          <span
-                            className={`font-mono font-bold tabular-nums ${
-                              isPos ? 'text-emerald-500' : 'text-red-500'
-                            }`}
-                          >
-                            {isPos ? '+' : ''}
-                            {post.impactPct}%
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs font-medium text-[#11081F] dark:text-[#F8F7FC]">{post.headline}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+            <CatalystFeed posts={newsPosts} creators={creators} onSelect={(c) => openRaise(c, 'BUY')} title={t.culturalCatalysts} />
           </div>
-        ) : (
-          /* PRIMARY EXCHANGE WORKSPACE: 70% MAIN COLUMN + 30% STICKY INTELLIGENCE RAIL */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* LEFT 70% MAIN MARKET COLUMN */}
-            <div className="lg:col-span-8 space-y-5">
-              {/* Category Underline Line Tabs (Not Pill Buttons) */}
-              <div className="flex items-center gap-6 overflow-x-auto border-b border-[#E4DFF2] dark:border-[#2A174A]">
-                {MARKET_CATEGORIES.map((cat) => (
+        ) : activeTab === 'races' ? (
+          /* Live Creator Races catalog */
+          <div className="space-y-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-[#0F172A]">
+                  {lang === 'FR' ? 'Catalogue des courses' : 'Creator Race Catalog'}
+                </h1>
+                <p className="text-xs text-[#64748B] mt-1">
+                  {lang === 'FR'
+                    ? 'Syndicats de redevances et partages de revenus, réglés en MoMo.'
+                    : 'Royalty and revenue-share syndicates, settled via Mobile Money.'}
+                </p>
+              </div>
+              <div className="hidden sm:inline-flex items-center p-1 rounded-[8px] bg-white shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cards')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-semibold ${
+                    viewMode === 'cards' ? 'bg-[#1E0B36] text-white' : 'text-[#64748B]'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>{t.cardsView}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-semibold ${
+                    viewMode === 'table' ? 'bg-[#1E0B36] text-white' : 'text-[#64748B]'
+                  }`}
+                >
+                  <Table2 className="w-3.5 h-3.5" />
+                  <span>{t.tableView}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              {MARKET_CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-colors ${
+                    selectedCategory === cat
+                      ? 'bg-[#6C2BD9] text-white'
+                      : 'bg-white text-[#64748B] shadow-sm hover:text-[#0F172A]'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {selectedCategory === 'Brand Campaigns' ? (
+              <BrandCampaignList
+                campaigns={brandCampaigns}
+                lang={lang}
+                onApply={() => {
+                  if (!user) setAuthModalOpen(true);
+                  else {
+                    setActiveTab('profile');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+              />
+            ) : filteredCreators.length === 0 ? (
+              <div className="py-12 px-4 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-[#6C2BD9]/10 text-[#6C2BD9] flex items-center justify-center mx-auto">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-[#0F172A]">{t.emptyRaises}</p>
+                  <p className="text-xs text-[#64748B] max-w-sm mx-auto leading-relaxed">
+                    {user?.admin
+                      ? 'Open the Exchange Console to publish initial Cameroon creator Raises or approve pending claims.'
+                      : 'Request an unlisted creator listing memo or claim your creator profile in Profile -> Creator Mode.'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2.5">
                   <button
-                    key={cat}
                     type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`pb-3 pt-1 text-xs font-semibold whitespace-nowrap shrink-0 border-b-2 transition-colors ${
-                      selectedCategory === cat
-                        ? 'border-violet-500 text-[#11081F] dark:text-[#F8F7FC]'
-                        : 'border-transparent text-[#645582] dark:text-[#A99BC8] hover:text-[#11081F] dark:hover:text-white'
-                    }`}
+                    onClick={() => setActiveTab('search')}
+                    className="px-5 py-2.5 rounded-full bg-white shadow-sm text-xs font-semibold"
                   >
-                    {cat}
+                    {t.requestListing}
                   </button>
+                  {user?.admin && (
+                    <button
+                      type="button"
+                      onClick={() => navigateAdmin(true)}
+                      className="px-5 py-2.5 rounded-full bg-[#1E0B36] text-white text-xs font-semibold"
+                    >
+                      {t.adminConsole}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : viewMode === 'table' ? (
+              <MarketTableView creators={filteredCreators} lang={lang} onTrade={(c, side) => openRaise(c, side)} />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {filteredCreators.map((creator) => (
+                  <CreatorMarketCard
+                    key={creator.id}
+                    creator={creator}
+                    lang={lang}
+                    onTrade={(c, side) => openRaise(c, side || 'BUY')}
+                    onClaim={handleClaimCreator}
+                  />
                 ))}
               </div>
+            )}
+          </div>
+        ) : (
+          /* MARKET HOME: MoMo recharge, cultural predictions, open races, cultural radar */
+          <div className="space-y-6">
+            <section className="card p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="w-11 h-11 rounded-[8px] bg-[#EAEDFF] flex items-center justify-center shrink-0">
+                <Wallet className="w-5 h-5 text-[#6C2BD9]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-display font-semibold text-[#0F172A]">Instant MoMo &amp; Cash</p>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  {lang === 'FR'
+                    ? 'Déposez via MTN MoMo ou Orange Money (CamPay).'
+                    : 'Deposit with MTN MoMo or Orange Money (CamPay).'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWalletOpen(true)}
+                className="px-5 py-2.5 rounded-[4px] bg-[#1E0B36] hover:bg-[#4C1D95] text-white text-xs font-semibold uppercase tracking-wide"
+              >
+                {lang === 'FR' ? 'Recharger' : 'Recharge'}
+              </button>
+            </section>
 
-              {/* Featured Kalshi-Style Spotlight Hero Carousel */}
-              {selectedCategory === 'Trending' && !normalizedQuery && (
+            {selectedCategory === 'Trending' && !normalizedQuery && (
+              <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <h2 className="font-display text-lg font-semibold text-[#0F172A]">{t.predictionMarkets}</h2>
+                </div>
                 <FeaturedHeroCarousel
                   creators={creators.filter((c) => c.status !== 'ENDED')}
                   predictions={predictions.filter((p) => p.status === 'OPEN')}
@@ -573,309 +672,47 @@ export default function App() {
                   onSelectCreator={(c) => openRaise(c, 'BUY')}
                   onVotePrediction={(p, side) => setVotingPrediction({ prediction: p, side })}
                 />
-              )}
-
-              {/* Brand & Agency Campaigns Panel */}
-              {selectedCategory === 'Brand Campaigns' ? (
-                <section className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC] flex items-center gap-2">
-                      <Briefcase className="w-4 h-4 text-violet-500" />
-                      <span>Brand & Agency Sponsorship Deals</span>
-                    </h2>
-                    <span className="text-xs text-[#645582] dark:text-[#A99BC8] tabular-nums">
-                      {brandCampaigns.length} open
-                    </span>
-                  </div>
-
-                  {brandCampaigns.length === 0 ? (
-                    <div className="py-12 text-center space-y-3">
-                      <p className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                        No brand campaigns open yet
-                      </p>
-                      <p className="text-xs text-[#645582] dark:text-[#A99BC8] max-w-sm mx-auto">
-                        Partner brands and talent agencies publish verified creator sponsorship briefs here.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                      {brandCampaigns.map((camp) => (
-                        <div
-                          key={camp.id}
-                          className="bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] rounded-3xl p-5 space-y-3"
-                        >
-                          <div className="flex items-center justify-between gap-2 text-xs">
-                            <span className="font-bold text-violet-500 truncate">
-                              {camp.brandName}
-                              {camp.agencyName ? ` · via ${camp.agencyName}` : ''}
-                            </span>
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 font-semibold shrink-0">
-                              {camp.status}
-                            </span>
-                          </div>
-                          <h3 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                            {lang === 'FR' ? camp.titleFr : camp.titleEn}
-                          </h3>
-                          {camp.deliverable && (
-                            <p className="text-xs text-[#645582] dark:text-[#A99BC8] leading-relaxed">
-                              {camp.deliverable}
-                            </p>
-                          )}
-                          <div className="pt-2.5 border-t border-[#E4DFF2] dark:border-[#2A174A] flex items-center justify-between gap-2 text-xs">
-                            <div>
-                              <span className="text-[#645582] dark:text-[#A99BC8]">Pool: </span>
-                              <strong className="font-mono text-[#11081F] dark:text-[#F8F7FC] tabular-nums">
-                                {formatXAF(camp.budgetXAF)}
-                              </strong>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!user) {
-                                  setAuthModalOpen(true);
-                                } else {
-                                  setActiveTab('profile');
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }
-                              }}
-                              className="px-4 py-1.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-semibold"
-                            >
-                              Apply as Creator
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              ) : (
-                /* Active Raises Grid / Order Table */
-                <section className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                        {selectedCategory === 'Trending' ? t.marketsToWatch : selectedCategory}
-                      </h2>
-                      <span className="text-xs text-[#645582] dark:text-[#A99BC8] tabular-nums">
-                        ({filteredCreators.length})
-                      </span>
-                    </div>
-
-                    {/* Desktop Cards vs Order Table Toggle */}
-                    <div className="hidden sm:inline-flex items-center p-1 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A]">
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('cards')}
-                        className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold ${
-                          viewMode === 'cards'
-                            ? 'bg-violet-600 text-white'
-                            : 'text-[#645582] dark:text-[#A99BC8]'
-                        }`}
-                      >
-                        <LayoutGrid className="w-3.5 h-3.5" />
-                        <span>{t.cardsView}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('table')}
-                        className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold ${
-                          viewMode === 'table'
-                            ? 'bg-violet-600 text-white'
-                            : 'text-[#645582] dark:text-[#A99BC8]'
-                        }`}
-                      >
-                        <Table2 className="w-3.5 h-3.5" />
-                        <span>{t.tableView}</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {filteredCreators.length === 0 ? (
-                    <div className="py-12 px-4 text-center space-y-4">
-                      <div className="w-12 h-12 rounded-full bg-violet-600/15 text-violet-500 flex items-center justify-center mx-auto">
-                        <Sparkles className="w-5 h-5" />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                          {t.emptyRaises}
-                        </p>
-                        <p className="text-xs text-[#645582] dark:text-[#A99BC8] max-w-sm mx-auto leading-relaxed">
-                          {user?.admin
-                            ? 'Open the Exchange Console to publish initial Cameroon creator Raises or approve pending claims.'
-                            : 'Request an unlisted creator listing memo or claim your creator profile in Profile -> Creator Mode.'}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-center gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('search')}
-                          className="px-5 py-2.5 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] text-xs font-semibold"
-                        >
-                          {t.requestListing}
-                        </button>
-                        {user?.admin && (
-                          <button
-                            type="button"
-                            onClick={() => navigateAdmin(true)}
-                            className="px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
-                          >
-                            {t.adminConsole}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ) : viewMode === 'table' ? (
-                    <MarketTableView
-                      creators={filteredCreators}
-                      lang={lang}
-                      onTrade={(c, side) => openRaise(c, side)}
-                    />
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                      {filteredCreators.map((creator) => (
-                        <CreatorMarketCard
-                          key={creator.id}
-                          creator={creator}
-                          lang={lang}
-                          onTrade={(c, side) => openRaise(c, side || 'BUY')}
-                          onClaim={handleClaimCreator}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </section>
-              )}
-
-              {/* Mobile Inline Cultural Predictions Preview */}
-              {predictions.length > 0 && (
-                <section className="lg:hidden space-y-3 pt-2">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                      {t.predictionMarkets}
-                    </h2>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('predictions')}
-                      className="text-xs font-semibold text-violet-500"
-                    >
-                      View all ({predictions.length})
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {filteredPredictions.slice(0, 2).map((pred) => (
-                      <PredictionMarketCard
-                        key={pred.id}
-                        prediction={pred}
-                        lang={lang}
-                        onVote={(p, side) => setVotingPrediction({ prediction: p, side })}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-            </div>
-
-            {/* RIGHT 30% STICKY MARKET INTELLIGENCE RAIL (DESKTOP) */}
-            <aside className="hidden lg:block lg:col-span-4 lg:sticky lg:top-28 space-y-5">
-              {/* 1. Cultural Prediction Markets (Yes / No) */}
-              <section className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Percent className="w-4 h-4 text-emerald-500" />
-                    <h2 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                      {t.predictionMarkets}
-                    </h2>
-                  </div>
-                  <span className="text-[11px] text-[#645582] dark:text-[#A99BC8] tabular-nums">
-                    {filteredPredictions.length} live
-                  </span>
-                </div>
-
-                {filteredPredictions.length === 0 ? (
-                  <p className="py-4 text-xs text-[#645582] dark:text-[#A99BC8] text-center">
-                    {t.emptyPredictions}
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {filteredPredictions.slice(0, 4).map((pred) => (
-                      <PredictionMarketCard
-                        key={pred.id}
-                        prediction={pred}
-                        lang={lang}
-                        onVote={(p, side) => setVotingPrediction({ prediction: p, side })}
-                      />
-                    ))}
-                  </div>
-                )}
               </section>
+            )}
 
-              {/* 2. Cultural Catalysts Feed */}
-              <section className="rounded-3xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Flame className="w-4 h-4 text-violet-500" />
-                    <h2 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                      {t.culturalCatalysts}
-                    </h2>
-                  </div>
-                  <span className="text-[11px] text-[#645582] dark:text-[#A99BC8]">Live #237</span>
-                </div>
-
-                {newsPosts.length === 0 ? (
-                  <p className="text-xs text-[#645582] dark:text-[#A99BC8]">
-                    Cultural market catalysts will appear here as local blogs and social hits move prices.
-                  </p>
-                ) : (
-                  <div className="divide-y divide-[#E4DFF2] dark:divide-[#2A174A]">
-                    {newsPosts.slice(0, 4).map((post) => {
-                      const linked = creators.find((c) => c.id === post.creatorId);
-                      const isPos = (post.impactPct ?? 0) >= 0;
-                      return (
-                        <div
-                          key={post.id}
-                          onClick={() => linked && openRaise(linked, 'BUY')}
-                          className={`py-2.5 first:pt-0 last:pb-0 space-y-1 ${
-                            linked ? 'cursor-pointer hover:opacity-85' : ''
-                          }`}
-                        >
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="font-semibold text-violet-500">
-                              {post.sourceName} {post.city ? `· ${post.city}` : ''}
-                            </span>
-                            {typeof post.impactPct === 'number' && (
-                              <span
-                                className={`font-mono font-bold tabular-nums ${
-                                  isPos ? 'text-emerald-500' : 'text-red-500'
-                                }`}
-                              >
-                                {isPos ? '+' : ''}
-                                {post.impactPct}%
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-[#11081F] dark:text-[#F8F7FC] leading-snug">
-                            {post.headline}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-
-              {/* 3. Top Movers & Creators Leaderboard */}
-              <section className="rounded-3xl bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] p-5 space-y-3">
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-emerald-500" />
-                  <h2 className="text-sm font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                    {t.topMovers}
-                  </h2>
+                  <h2 className="font-display text-lg font-semibold text-[#0F172A]">{t.marketsToWatch}</h2>
+                  <span className="label-xs text-[#6C2BD9] bg-[#6C2BD9]/10 px-2 py-0.5 rounded-full">Live</span>
                 </div>
+                <button type="button" onClick={() => setActiveTab('races')} className="text-xs font-semibold text-[#6C2BD9]">
+                  {lang === 'FR' ? 'Tout voir' : 'View all'} ({filteredCreators.length})
+                </button>
+              </div>
+              {filteredCreators.length === 0 ? (
+                <p className="py-6 text-xs text-[#64748B] text-center">{t.emptyRaises}</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {filteredCreators.slice(0, 4).map((creator) => (
+                    <CreatorMarketCard
+                      key={creator.id}
+                      creator={creator}
+                      lang={lang}
+                      onTrade={(c, side) => openRaise(c, side || 'BUY')}
+                      onClaim={handleClaimCreator}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
 
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <CatalystFeed posts={newsPosts} creators={creators} onSelect={(c) => openRaise(c, 'BUY')} title={t.culturalCatalysts} />
+              <section className="card p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-[#059669]" />
+                  <h2 className="font-display text-base font-semibold text-[#0F172A]">{t.topMovers}</h2>
+                </div>
                 {topMovers.length === 0 ? (
-                  <p className="text-xs text-[#645582] dark:text-[#A99BC8]">No active movers yet.</p>
+                  <p className="text-xs text-[#64748B]">No active movers yet.</p>
                 ) : (
-                  <div className="divide-y divide-[#E4DFF2] dark:divide-[#2A174A]">
+                  <div className="divide-y divide-[#E2E8F0]">
                     {topMovers.map((c, idx) => {
                       const isUp = c.priceChangePct >= 0;
                       return (
@@ -883,30 +720,20 @@ export default function App() {
                           key={c.id}
                           type="button"
                           onClick={() => openRaise(c, 'BUY')}
-                          className="w-full py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-2 text-left hover:opacity-85"
+                          className="w-full py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-2 text-left"
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="w-5 text-[11px] font-mono text-[#645582] dark:text-[#A99BC8] tabular-nums">
-                              #{idx + 1}
-                            </span>
+                            <span className="w-5 text-[11px] num text-[#64748B]">#{idx + 1}</span>
                             <div className="min-w-0">
-                              <div className="text-xs font-semibold text-[#11081F] dark:text-[#F8F7FC] truncate">
-                                {c.name}
-                              </div>
-                              <div className="text-[11px] text-[#645582] dark:text-[#A99BC8] tabular-nums">
+                              <div className="text-xs font-semibold text-[#0F172A] truncate">{c.name}</div>
+                              <div className="text-[11px] text-[#64748B] num">
                                 Score {c.crippoScore ?? 85} · {formatCompact(c.tradingVolumeXAF)} vol
                               </div>
                             </div>
                           </div>
-                          <div className="text-right shrink-0 tabular-nums">
-                            <div className="text-xs font-mono font-bold text-[#11081F] dark:text-[#F8F7FC]">
-                              {formatXAF(c.sharePriceXAF)}
-                            </div>
-                            <div
-                              className={`text-[11px] font-mono font-semibold ${
-                                isUp ? 'text-emerald-500' : 'text-red-500'
-                              }`}
-                            >
+                          <div className="text-right shrink-0">
+                            <div className="num text-xs font-bold text-[#0F172A]">{formatXAF(c.sharePriceXAF)}</div>
+                            <div className={`num text-[11px] font-semibold ${isUp ? 'text-[#059669]' : 'text-[#DC2626]'}`}>
                               {isUp ? '+' : ''}
                               {c.priceChangePct}%
                             </div>
@@ -917,24 +744,19 @@ export default function App() {
                   </div>
                 )}
               </section>
-            </aside>
+            </div>
           </div>
         )}
       </main>
 
-      {/* Mobile Floating Rounded Bottom Navigation Bar */}
-      {!isAdminRoute && !liveSelectedRaiseCreator && (
+      {/* Mobile floating bottom navigation */}
+      {showShell && (
         <nav
           aria-label="Mobile navigation"
-          className="md:hidden fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40 rounded-full bg-white dark:bg-[#180D2B] border border-[#E4DFF2] dark:border-[#2A174A] px-2.5 py-1.5 shadow-lg"
+          className="md:hidden fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40 rounded-full bg-white/80 backdrop-blur-xl border border-white px-2 py-1.5 shadow-[0_10px_30px_rgba(15,27,61,0.12)]"
         >
-          <div className="grid grid-cols-4 gap-1">
-            {[
-              { id: 'markets', label: t.markets, icon: CandlestickChart },
-              { id: 'predictions', label: t.predictions, icon: Percent },
-              { id: 'portfolio', label: t.portfolio, icon: Briefcase },
-              { id: 'profile', label: t.profile, icon: UserIcon },
-            ].map((item) => {
+          <div className="grid grid-cols-5 gap-0.5">
+            {navItems.map((item) => {
               const Icon = item.icon;
               const active = activeTab === item.id;
               return (
@@ -942,17 +764,15 @@ export default function App() {
                   key={item.id}
                   type="button"
                   onClick={() => {
-                    setActiveTab(item.id as WorkspaceTab);
+                    setActiveTab(item.id);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   className={`flex flex-col items-center justify-center gap-0.5 py-2 rounded-full min-h-[46px] transition-colors ${
-                    active
-                      ? 'bg-violet-600 text-white font-semibold'
-                      : 'text-[#645582] dark:text-[#A99BC8]'
+                    active ? 'bg-[#1E0B36] text-white' : 'text-[#64748B]'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="text-[11px] leading-none">{item.label}</span>
+                  <span className="text-[10px] font-semibold leading-none">{item.label}</span>
                 </button>
               );
             })}
@@ -960,7 +780,6 @@ export default function App() {
         </nav>
       )}
 
-      {/* Prediction Vote Order Modal */}
       <PredictionVoteModal
         prediction={liveVotingPrediction}
         initialSide={votingPrediction?.side || 'YES'}
@@ -973,7 +792,6 @@ export default function App() {
         }}
       />
 
-      {/* Mobile Money Cash Wallet Modal */}
       <WalletModal
         open={walletOpen}
         user={user}
@@ -987,7 +805,6 @@ export default function App() {
         }}
       />
 
-      {/* Live Market Alerts Slide-Over Drawer */}
       <NotificationsDrawer
         open={notificationsOpen}
         notifications={notifications}
@@ -999,8 +816,109 @@ export default function App() {
         }}
       />
 
-      {/* Firebase Authentication Modal */}
       <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+    </div>
+  );
+}
+
+/** Cultural Radar / catalysts feed, shared by the home and predictions screens. */
+function CatalystFeed({
+  posts,
+  creators,
+  onSelect,
+  title,
+}: {
+  posts: NewsPost[];
+  creators: Creator[];
+  onSelect: (c: Creator) => void;
+  title: string;
+}) {
+  return (
+    <section className="card p-5 space-y-3">
+      <div className="flex items-center gap-2">
+        <Flame className="w-4 h-4 text-[#6C2BD9]" />
+        <h2 className="font-display text-base font-semibold text-[#0F172A]">{title}</h2>
+      </div>
+      {posts.length === 0 ? (
+        <p className="text-xs text-[#64748B]">
+          Cultural market catalysts will appear here as local blogs and social hits move prices.
+        </p>
+      ) : (
+        <div className="divide-y divide-[#E2E8F0]">
+          {posts.slice(0, 5).map((post) => {
+            const linked = creators.find((c) => c.id === post.creatorId);
+            const isPos = (post.impactPct ?? 0) >= 0;
+            return (
+              <div
+                key={post.id}
+                onClick={() => linked && onSelect(linked)}
+                className={`py-2.5 first:pt-0 last:pb-0 space-y-1 ${linked ? 'cursor-pointer' : ''}`}
+              >
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-semibold text-[#6C2BD9]">
+                    {post.sourceName} {post.city ? `· ${post.city}` : ''}
+                  </span>
+                  {typeof post.impactPct === 'number' && (
+                    <span className={`num font-bold ${isPos ? 'text-[#059669]' : 'text-[#DC2626]'}`}>
+                      {isPos ? '+' : ''}
+                      {post.impactPct}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[#0F172A] leading-snug">{post.headline}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Brand & agency sponsorship briefs, shown under the Races catalog. */
+function BrandCampaignList({
+  campaigns,
+  lang,
+  onApply,
+}: {
+  campaigns: BrandCampaign[];
+  lang: AppLang;
+  onApply: () => void;
+}) {
+  if (campaigns.length === 0) {
+    return (
+      <div className="py-12 text-center space-y-3">
+        <p className="text-sm font-bold text-[#0F172A]">No brand campaigns open yet</p>
+        <p className="text-xs text-[#64748B] max-w-sm mx-auto">
+          Partner brands and talent agencies publish verified creator sponsorship briefs here.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+      {campaigns.map((camp) => (
+        <div key={camp.id} className="card p-5 space-y-3">
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="font-bold text-[#6C2BD9] truncate">
+              {camp.brandName}
+              {camp.agencyName ? ` · via ${camp.agencyName}` : ''}
+            </span>
+            <span className="label-xs px-2.5 py-0.5 rounded-full bg-[#059669]/10 text-[#059669] shrink-0">{camp.status}</span>
+          </div>
+          <h3 className="text-sm font-bold text-[#0F172A]">{lang === 'FR' ? camp.titleFr : camp.titleEn}</h3>
+          {camp.deliverable && <p className="text-xs text-[#64748B] leading-relaxed">{camp.deliverable}</p>}
+          <div className="pt-2.5 border-t border-[#E2E8F0] flex items-center justify-between gap-2 text-xs">
+            <div>
+              <span className="text-[#64748B]">Pool: </span>
+              <strong className="num text-[#0F172A]">{formatXAF(camp.budgetXAF)}</strong>
+            </div>
+            <button type="button" onClick={onApply} className="px-4 py-1.5 rounded-full bg-[#1E0B36] text-white text-[11px] font-semibold">
+              Apply as Creator
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
