@@ -52,7 +52,9 @@ import { RaiseDetailView } from './components/RaiseDetailView';
 import { PredictionVoteModal } from './components/PredictionVoteModal';
 import { OrderExecution } from './components/OrderExecution';
 import { NotificationsDrawer, WalletModal } from './components/WalletAndNotifications';
-import { TradesView } from './components/TradesView';
+import { PortfolioView } from './components/PortfolioView';
+import { RaiseQuestionnaire } from './components/RaiseQuestionnaire';
+import { CreatorKyc } from './components/CreatorKyc';
 import { SearchView } from './components/SearchView';
 import { ProfileView } from './components/ProfileView';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -125,6 +127,7 @@ export default function App() {
     side: 'YES' | 'NO';
   } | null>(null);
   const [walletOpen, setWalletOpen] = useState(false);
+  const [studioView, setStudioView] = useState<'raise' | 'kyc' | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const t = translations[lang];
@@ -134,6 +137,11 @@ export default function App() {
     const timer = window.setTimeout(() => setShowSplash(false), 900);
     return () => window.clearTimeout(timer);
   }, []);
+
+  // Leaving a tab closes any open studio screen (raise questionnaire or KYC).
+  useEffect(() => {
+    setStudioView(null);
+  }, [activeTab]);
 
   // Sync Tailwind dark class on <html>
   useEffect(() => {
@@ -446,16 +454,35 @@ export default function App() {
             onRequireAuth={() => setAuthModalOpen(true)}
             onClaim={handleClaimCreator}
           />
+        ) : studioView === 'raise' ? (
+          <div className="max-w-5xl mx-auto">
+            <RaiseQuestionnaire
+              user={user}
+              lang={lang}
+              onBack={() => setStudioView(null)}
+              onRequireAuth={() => setAuthModalOpen(true)}
+              onSubmitted={() => undefined}
+            />
+          </div>
+        ) : studioView === 'kyc' ? (
+          <div className="max-w-5xl mx-auto">
+            <CreatorKyc
+              user={user}
+              lang={lang}
+              claimCreator={claimTargetCreator}
+              onBack={() => setStudioView(null)}
+              onRequireAuth={() => setAuthModalOpen(true)}
+            />
+          </div>
         ) : activeTab === 'portfolio' ? (
           <div className="max-w-4xl mx-auto">
-            <TradesView
+            <PortfolioView
               user={user}
               trades={trades}
-              predictionVotes={predictionVotes}
               creators={creators}
               lang={lang}
               onRequireAuth={() => setAuthModalOpen(true)}
-              onSelectCreator={(c) => openRaise(c, 'BUY')}
+              onSelectCreator={(c, side) => openRaise(c, side)}
               onGoToMarket={() => setActiveTab('markets')}
               onOpenWallet={() => setWalletOpen(true)}
             />
@@ -534,6 +561,22 @@ export default function App() {
                     ? 'Syndicats de redevances et partages de revenus, réglés en MoMo.'
                     : 'Royalty and revenue-share syndicates, settled via Mobile Money.'}
                 </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStudioView('kyc')}
+                  className="hidden sm:inline-flex px-4 py-2 rounded-[4px] bg-white shadow-sm text-xs font-semibold"
+                >
+                  {lang === 'FR' ? 'Vérifier mon identité' : 'Verify identity'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStudioView('raise')}
+                  className="px-4 py-2 rounded-[4px] bg-[#059669] hover:bg-[#047857] text-white text-xs font-semibold"
+                >
+                  {lang === 'FR' ? 'Lancer une course' : 'Start a raise'}
+                </button>
               </div>
               <div className="hidden sm:inline-flex items-center p-1 rounded-[8px] bg-white shadow-sm">
                 <button

@@ -69,7 +69,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ lang, onFini
       : [
           {
             icon: TrendingUp,
-            eyebrow: '01 · PERSON & CREATOR MARKET',
+            eyebrow: '01 · PERSON & CREATOR',
             title: 'Own verified stakes in real talent.',
             body: 'Crippo is a live creator capital market. Buy revenue-sharing stakes in Cameroonian musicians, filmmakers, and digital storytellers directly in XAF.',
             highlights: [
